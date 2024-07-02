@@ -6,3 +6,6 @@ __pycache__
 
 # Secrets
 .env
+
+# Testing
+.pytest_cache
