@@ -3,7 +3,7 @@ from fastapi import FastAPI
 app = FastAPI()
 
 
-@app.get('/')
+@app.get('/', description='Health check')
 def get_root_status_checks():
     return {
         'status_code': 200,
