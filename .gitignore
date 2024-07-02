@@ -9,3 +9,6 @@ __pycache__
 
 # Testing
 .pytest_cache
+
+# MacOS files
+.DS_Store
