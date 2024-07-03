@@ -7,6 +7,8 @@
 git clone https://github.com/zakh-d/python-fs-internship-backend.git
 ```
 
+## If you want to run on local machine
+
 ### Set up venv and download requirements
 **Create new virtual environment**
 ```
@@ -53,4 +55,16 @@ uvicorn --reload app.main:app
 ### Run tests
 ```
 python -m pytest
+```
+
+## If you want to use Docker
+### Build docker image 
+
+```
+docker build -t web-api-server . 
+```
+
+### Run docker container
+```
+docker run -d --name [name for container] -p [port]:80 web-api-server
 ```
