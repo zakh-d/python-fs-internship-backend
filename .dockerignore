@@ -1,0 +1,8 @@
+README.md
+.env.example
+venv
+.gitignore
+.git
+**/.DS_Store
+**/__pycache__
+**/.pytest_cache
