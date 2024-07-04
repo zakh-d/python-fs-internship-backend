@@ -7,3 +7,7 @@ services:
       - ./app:/code/app
     env_file:
       - ./.env
+  postgres:
+    image: postgres
+    env_file:
+      - ./.env
