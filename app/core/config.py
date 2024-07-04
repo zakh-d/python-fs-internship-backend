@@ -2,7 +2,6 @@ from typing import Any
 from pydantic import (
     Field,
     computed_field,
-    PostgresDsn,
 )
 
 from pydantic.fields import FieldInfo
@@ -41,15 +40,15 @@ class Settings(BaseSettings):
 
     @computed_field
     @property
-    def postgres_dsn(self) -> PostgresDsn:
-        return MultiHostUrl.build(
+    def postgres_dsn(self) -> str:
+        return str(MultiHostUrl.build(
             scheme='postgresql+asyncpg',
             username=self.POSTGRES_USER,
             password=self.POSTGRES_PASSWORD,
             host=self.POSTGRES_DB_HOST,
             port=self.POSRGRES_PORT,
-            path=f'/{self.POSTGRES_DB}',
-        )
+            path=f'{self.POSTGRES_DB}',
+        ))
 
 
 settings = Settings()

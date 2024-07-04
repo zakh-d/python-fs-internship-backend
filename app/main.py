@@ -1,10 +1,24 @@
+import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.db import init_db
 from app.schemas import HealthCheckInfo
 from app.core.config import settings
 
-app = FastAPI()
+
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    logger.info('Database initialized')
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 app.add_middleware(
