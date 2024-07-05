@@ -23,8 +23,5 @@ async def init_db():
 
 async def get_db():
     """Get a database session"""
-    db = async_session()
-    try:
-        yield db
-    finally:
-        await db.close()
+    async with async_session() as session:
+        yield session
