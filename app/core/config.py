@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 from pydantic import (
     Field,
     computed_field,
@@ -49,6 +49,8 @@ class Settings(BaseSettings):
             port=self.POSRGRES_PORT,
             path=f'{self.POSTGRES_DB}',
         ))
+    
+    ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
 
 settings = Settings()
