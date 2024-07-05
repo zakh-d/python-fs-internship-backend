@@ -35,20 +35,12 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_USER: str
     POSTGRES_DB: str
-    POSRGRES_PORT: int = 5432
+    POSTGRES_PORT: int = 5432
     POSTGRES_DB_HOST: str
 
-    @computed_field
     @property
     def postgres_dsn(self) -> str:
-        return str(MultiHostUrl.build(
-            scheme='postgresql+asyncpg',
-            username=self.POSTGRES_USER,
-            password=self.POSTGRES_PASSWORD,
-            host=self.POSTGRES_DB_HOST,
-            port=self.POSRGRES_PORT,
-            path=f'{self.POSTGRES_DB}',
-        ))
+        return f'postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_DB_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}'
     
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
