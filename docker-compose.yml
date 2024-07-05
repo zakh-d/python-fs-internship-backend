@@ -16,6 +16,9 @@ services:
       - ./.env
     volumes:
       - app-db-data:/var/lib/postgresql/pgdata
-
+  redis:
+    image: redis
+    restart: always
+    
 volumes:
   app-db-data:
