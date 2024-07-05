@@ -1,5 +1,6 @@
-from .health_check_schema import HealthCheckInfo
+from .health_check_schema import HealthCheckInfo, HealthCheckReport
 
 __all__ = [
-    'HealthCheckInfo'
+    'HealthCheckInfo',
+    'HealthCheckReport'
 ]
