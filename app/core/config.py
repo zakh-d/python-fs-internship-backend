@@ -42,6 +42,9 @@ class Settings(BaseSettings):
     def postgres_dsn(self) -> str:
         return f'postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_DB_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}'
     
+    REDIS_HOST: str
+    REDIS_PORT: int = 6379
+
     ENVIRONMENT: Literal["local", "staging", "production"] = "local"
 
 

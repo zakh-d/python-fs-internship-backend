@@ -1,7 +1,7 @@
 from .db import init_db
-from .redis import redis_client
+from .redis import get_redis_client
 
 __all__ = [
     'init_db',
-    'redis_client',
+    'get_redis_client',
 ]

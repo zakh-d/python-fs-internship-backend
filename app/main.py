@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.db import init_db, redis_client
+from app.db import init_db, get_redis_client
 from app.schemas import HealthCheckInfo
 from app.core.config import settings
 
@@ -15,13 +15,8 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     await init_db()
     logger.info('Database initialized')
-
-    await redis_client.ping()
-    logger.info('Pinged redis')
+    
     yield
-
-    await redis_client.aclose()
-    logger.info('Closed redis connection')
 
 
 app = FastAPI(lifespan=lifespan)
