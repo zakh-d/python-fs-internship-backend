@@ -1,11 +1,10 @@
 import logging
-from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.db import init_db, get_db
+from app.db import get_db
 from app.schemas import HealthCheckReport, HealthCheckInfo
 from app.services.health_check_service import check_db_health, check_redis_health
 
@@ -13,15 +12,7 @@ from app.services.health_check_service import check_db_health, check_redis_healt
 logger = logging.getLogger(__name__)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    await init_db()
-    logger.info('Database initialized')
-    
-    yield
-
-
-app = FastAPI(lifespan=lifespan)
+app = FastAPI()
 
 
 app.add_middleware(
