@@ -1,2 +1,7 @@
 fastapi==0.111.0
 pytest==8.2.2
+SQLAlchemy==2.0.31
+greenlet==3.0.3 # for sqlalchemy[asyncio]
+asyncpg==0.29.0
+pydantic-settings==2.3.0
+redis==5.0.7
