@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import BIGINT, TIMESTAMP, Boolean, String, Uuid
+from sqlalchemy import TIMESTAMP, String, Uuid
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import mapped_column, Mapped, declarative_base
 from uuid import UUID
@@ -12,11 +12,9 @@ class ModelBase(AsyncAttrs, Base):
     __abstract__ = True
 
     type_annotation_map = {
-        int: BIGINT,
         datetime: TIMESTAMP(timezone=True),
         UUID: Uuid,
         str: String,
-        bool: Boolean,
     }
 
     id: Mapped[UUID] = mapped_column(primary_key=True)
@@ -27,9 +25,12 @@ class ModelBase(AsyncAttrs, Base):
 class User(ModelBase):
     __tablename__ = 'users'
 
-    username: Mapped[str] = mapped_column(index=True, unique=True)
-    email: Mapped[str] = mapped_column(unique=True)
-    password: Mapped[str]
+    username: Mapped[str] = mapped_column(String(50), index=True, unique=True)
+    first_name: Mapped[str] = mapped_column(String(50), nullable=True)
+    last_name: Mapped[str] = mapped_column(String(50), nullable=True)
+    # email index is useful for searching users by email when using jwt
+    email: Mapped[str] = mapped_column(String(50), index=True, unique=True)
+    hashed_password: Mapped[str] = mapped_column(String(256))
 
     def __repr__(self):
         return f'<User {self.username}>'
