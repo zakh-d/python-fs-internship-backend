@@ -1,7 +1,6 @@
 from datetime import datetime
 from sqlalchemy import TIMESTAMP, String, Uuid
-from sqlalchemy.ext.asyncio import AsyncAttrs, AsyncSession
-from sqlalchemy.future import select
+from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import mapped_column, Mapped, declarative_base
 from uuid import UUID
 
@@ -35,7 +34,3 @@ class User(ModelBase):
 
     def __repr__(self):
         return f'<User {self.username}>'
-
-    @staticmethod
-    async def get_all_users(db: AsyncSession):
-        return await db.execute(select(User).all())
