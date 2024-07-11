@@ -2,7 +2,8 @@ from passlib.hash import argon2
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories import UserRepository
-from app.schemas.user_shema import UserSchema, UserList, UserSignUpSchema
+from app.schemas.user_shema import UserDetail, UserSchema, UserList, UserSignUpSchema
+from app.services.users_service.exceptions import UserNotFoundException
 
 
 class UserService:
@@ -30,3 +31,11 @@ class UserService:
         await user_repository.commit_me(created_user)
 
         return UserSchema.model_validate(created_user)
+
+    @staticmethod
+    async def get_user_by_id(db: AsyncSession, user_id: str):
+        user_repository = UserRepository(db)
+        user = await user_repository.get_user_by_id(user_id)
+        if not user:
+            raise UserNotFoundException('id', user_id)
+        return UserDetail.model_validate(user)

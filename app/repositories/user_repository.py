@@ -1,4 +1,5 @@
 from typing import Union
+from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +14,10 @@ class UserRepository:
     async def get_all_users(self):
         results = await self.db.execute(select(User))
         return results.scalars().all()
+
+    async def get_user_by_id(self, user_id: UUID) -> User:
+        results = await self.db.execute(select(User).where(User.id == user_id))
+        return results.scalars().first()
 
     def create_user_with_hashed_password(self,
                                          username: str,

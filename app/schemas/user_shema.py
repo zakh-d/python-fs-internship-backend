@@ -43,7 +43,8 @@ class UserUpdateSchema(BaseModel):
 
 
 class UserDetail(UserSchema):
-    pass
+    first_name: Annotated[str, Field(max_length=49)]
+    last_name: Annotated[str, Field(max_length=49)]
 
 
 class UserList(BaseModel):

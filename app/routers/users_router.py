@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Depends
+from uuid import UUID
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.db import get_db
-from app.schemas.user_shema import UserSchema, UserSignUpSchema, UserList
+from app.schemas.user_shema import UserDetail, UserSchema, UserSignUpSchema, UserList
 from app.services import UserService
+from app.services.users_service.exceptions import UserNotFoundException
 
 router = APIRouter()
 
@@ -16,3 +18,11 @@ async def read_users(db: AsyncSession = Depends(get_db)) -> UserList:
 @router.post("/sign_up/")
 async def user_sign_up(user: UserSignUpSchema, db: AsyncSession = Depends(get_db)) -> UserSchema:
     return await UserService.create_user(db, user)
+
+
+@router.get("/{user_id}")
+async def read_user(user_id: UUID, db: AsyncSession = Depends(get_db)) -> UserDetail:
+    try:
+        return await UserService.get_user_by_id(db, user_id)
+    except UserNotFoundException as e:
+        raise HTTPException(status_code=404, detail=str(e))
