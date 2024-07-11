@@ -1,9 +1,13 @@
 from passlib.hash import argon2
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories import UserRepository
 from app.schemas.user_shema import UserDetail, UserSchema, UserList, UserSignUpSchema, UserUpdateSchema
-from app.services.users_service.exceptions import UserNotFoundException, InvalidPasswordException
+from app.services.users_service.exceptions import (
+    UserAlreadyExistsException, UserNotFoundException, InvalidPasswordException
+)
+from app.utils.error_parser import get_conflicting_field
 
 
 class UserService:
@@ -27,9 +31,11 @@ class UserService:
             email=user_data.email,
             hashed_password=hashed_password
         )
-
-        await user_repository.commit_me(created_user)
-
+        try:
+            await user_repository.commit_me(created_user)
+        except IntegrityError as e:
+            conflicting_field, value = get_conflicting_field(e)
+            raise UserAlreadyExistsException(f"User with {conflicting_field}: '{value}' already exists!")
         return UserSchema.model_validate(created_user)
 
     @staticmethod

@@ -13,9 +13,5 @@ class InvalidPasswordException(Exception):
     pass
 
 
-class UserWithSameEmailAlreadyExistsException(Exception):
-    pass
-
-
-class UserWithSameUsernameAlreadyExistsException(Exception):
+class UserAlreadyExistsException(Exception):
     pass
