@@ -19,7 +19,7 @@ class UserService:
 
         hashed_password = argon2.hash(user_data.password)
 
-        user_repository.create_user_with_hashed_password(
+        created_user = user_repository.create_user_with_hashed_password(
             username=user_data.username,
             first_name=user_data.first_name,
             last_name=user_data.last_name,
@@ -27,4 +27,6 @@ class UserService:
             hashed_password=hashed_password
         )
 
-        await user_repository.commit_me()
+        await user_repository.commit_me(created_user)
+
+        return UserSchema.model_validate(created_user)

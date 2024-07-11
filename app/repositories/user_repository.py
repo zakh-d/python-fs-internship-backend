@@ -19,7 +19,7 @@ class UserRepository:
                                          first_name: Union[str, None],
                                          last_name: Union[str, None],
                                          email: str,
-                                         hashed_password: str):
+                                         hashed_password: str) -> User:
         user = User()
         user.username = username
         user.first_name = first_name
@@ -28,6 +28,8 @@ class UserRepository:
         user.hashed_password = hashed_password
         self.db.add(user)
 
-    async def commit_me(self):
+        return user
+
+    async def commit_me(self, user: User):
         await self.db.commit()
-        await self.db.refresh()
+        await self.db.refresh(user)
