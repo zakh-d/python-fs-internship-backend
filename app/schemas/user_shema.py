@@ -11,6 +11,10 @@ class UserSchema(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
 
 class UserSignInSchema(BaseModel):
     username: str
@@ -19,6 +23,8 @@ class UserSignInSchema(BaseModel):
 
 class UserSignUpSchema(UserSignInSchema):
     email: Annotated[EmailStr, Field(max_length=49)]
+    first_name: Annotated[str, Field(max_length=49)]
+    last_name: Annotated[str, Field(max_length=49)]
     password_confirmation: str  # can be of any length bc never will be hashed or stored in db
 
     @model_validator(mode='after')
