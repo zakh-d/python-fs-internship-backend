@@ -1,6 +1,5 @@
-from .db import init_db, get_db
+from .db import get_db
 
 __all__ = [
-    'init_db',
     'get_db',
 ]
