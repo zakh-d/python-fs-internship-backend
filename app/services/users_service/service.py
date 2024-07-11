@@ -41,7 +41,7 @@ class UserService:
         return UserDetail.model_validate(user)
 
     @staticmethod
-    async def update_user(db: AsyncSession, user_id: str, user_data: UserUpdateSchema):
+    async def update_user(db: AsyncSession, user_id: str, user_data: UserUpdateSchema) -> UserDetail:
         user_repository = UserRepository(db)
         user = await user_repository.get_user_by_id(user_id)
         if not user:
@@ -55,3 +55,13 @@ class UserService:
         await user_repository.commit_me(user)
 
         return UserDetail.model_validate(user)
+
+    @staticmethod
+    async def delete_user(db: AsyncSession, user_id: str):
+        user_repository = UserRepository(db)
+        user = await user_repository.get_user_by_id(user_id)
+        if not user:
+            raise UserNotFoundException('id', user_id)
+
+        await user_repository.delete_user(user)
+        await user_repository.commit_me(user, refresh=False)
