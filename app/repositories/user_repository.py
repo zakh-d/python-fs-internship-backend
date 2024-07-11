@@ -35,6 +35,10 @@ class UserRepository:
 
         return user
 
+    def update_user(self, user: User, user_data: dict):
+        for field, value in user_data.items():
+            setattr(user, field, value)
+
     async def commit_me(self, user: User):
         await self.db.commit()
         await self.db.refresh(user)

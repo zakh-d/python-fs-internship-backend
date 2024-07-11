@@ -9,6 +9,10 @@ class UserNotFoundException(Exception):
         return f'User with {self.field_name}={self.value} not found!'
 
 
+class InvalidPasswordException(Exception):
+    pass
+
+
 class UserWithSameEmailAlreadyExistsException(Exception):
     pass
 

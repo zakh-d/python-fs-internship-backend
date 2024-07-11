@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Optional
 from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field, model_validator
 
@@ -37,8 +37,10 @@ class UserSignUpSchema(UserSignInSchema):
 
 
 class UserUpdateSchema(BaseModel):
-    username: Annotated[str, Field(min_length=3, max_length=49)]
-    email: Annotated[EmailStr, Field(max_length=49)]
+    username: Optional[Annotated[str, Field(min_length=3, max_length=49)]] = None
+    first_name: Optional[Annotated[str, Field(max_length=49)]] = None
+    last_name: Optional[Annotated[str, Field(max_length=49)]] = None
+    email: Optional[Annotated[EmailStr, Field(max_length=49)]] = None
     password: Annotated[str, Field(max_length=255)]  # password needed to cofirm user intentions
 
 

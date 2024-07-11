@@ -2,8 +2,8 @@ from passlib.hash import argon2
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories import UserRepository
-from app.schemas.user_shema import UserDetail, UserSchema, UserList, UserSignUpSchema
-from app.services.users_service.exceptions import UserNotFoundException
+from app.schemas.user_shema import UserDetail, UserSchema, UserList, UserSignUpSchema, UserUpdateSchema
+from app.services.users_service.exceptions import UserNotFoundException, InvalidPasswordException
 
 
 class UserService:
@@ -38,4 +38,20 @@ class UserService:
         user = await user_repository.get_user_by_id(user_id)
         if not user:
             raise UserNotFoundException('id', user_id)
+        return UserDetail.model_validate(user)
+
+    @staticmethod
+    async def update_user(db: AsyncSession, user_id: str, user_data: UserUpdateSchema):
+        user_repository = UserRepository(db)
+        user = await user_repository.get_user_by_id(user_id)
+        if not user:
+            raise UserNotFoundException('id', user_id)
+
+        if not argon2.verify(user_data.password, user.hashed_password):
+            raise InvalidPasswordException()
+
+        user_repository.update_user(user, user_data.model_dump(exclude_unset=True, exclude={'password'}))
+
+        await user_repository.commit_me(user)
+
         return UserDetail.model_validate(user)

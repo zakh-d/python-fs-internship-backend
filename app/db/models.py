@@ -19,7 +19,7 @@ class ModelBase(AsyncAttrs, Base):
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     created_at: Mapped[datetime] = mapped_column(server_default='now()')
-    updated_at: Mapped[datetime] = mapped_column(server_default='now()', onupdate='now()')
+    updated_at: Mapped[datetime] = mapped_column(server_default='now()', onupdate=datetime.now)
 
 
 class User(ModelBase):
