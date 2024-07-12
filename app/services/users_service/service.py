@@ -8,6 +8,7 @@ from app.services.users_service.exceptions import (
     UserAlreadyExistsException, UserNotFoundException, InvalidPasswordException
 )
 from app.utils.error_parser import get_conflicting_field
+from app.utils.logging import logger
 
 
 class UserService:
@@ -33,8 +34,10 @@ class UserService:
         )
         try:
             await user_repository.commit_me(created_user)
+            logger.info(f"User with id: {created_user.id} created successfully!")
         except IntegrityError as e:
             conflicting_field, value = get_conflicting_field(e)
+            logger.error(f"User with {conflicting_field}: '{value}' already exists!")
             raise UserAlreadyExistsException(f"User with {conflicting_field}: '{value}' already exists!")
         return UserSchema.model_validate(created_user)
 
@@ -57,8 +60,13 @@ class UserService:
             raise InvalidPasswordException()
 
         user_repository.update_user(user, user_data.model_dump(exclude_unset=True, exclude={'password'}))
-
-        await user_repository.commit_me(user)
+        try:
+            await user_repository.commit_me(user)
+            logger.info(f"User with id: {user.id} updated successfully!")
+        except IntegrityError as e:
+            conflicting_field, value = get_conflicting_field(e)
+            logger.error(f"Cannot update user to {conflicting_field}: '{value}'!")
+            raise UserAlreadyExistsException(f"User with {conflicting_field}: '{value}' already exists!")
 
         return UserDetail.model_validate(user)
 
@@ -71,3 +79,4 @@ class UserService:
 
         await user_repository.delete_user(user)
         await user_repository.commit_me(user, refresh=False)
+        logger.info(f"User with id: {user.id} deleted successfully!")

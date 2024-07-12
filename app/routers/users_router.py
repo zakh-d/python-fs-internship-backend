@@ -41,6 +41,8 @@ async def update_user(user_id: UUID, user: UserUpdateSchema, db: AsyncSession = 
         raise HTTPException(status_code=404, detail=str(e))
     except InvalidPasswordException:
         raise HTTPException(status_code=401, detail='Invalid password')
+    except UserAlreadyExistsException as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete("/{user_id}")
