@@ -56,5 +56,8 @@ class Settings(BaseSettings):
 
     ENVIRONMENT: Literal['local', 'staging', 'production'] = 'local'
 
+    JWT_SECRET: str
+    JWT_EXPIRATION_MINUTES: int = 60
+
 
 settings = Settings()
