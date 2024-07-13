@@ -1,4 +1,3 @@
-import time
 import jwt
 from datetime import datetime, timedelta, timezone
 from passlib.hash import argon2
@@ -31,6 +30,15 @@ class AuthenticationService:
         now_plus_expiration = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_EXPIRATION_MINUTES)
         token = jwt.encode({
             "user_id": user.id.hex,
-            "expiration": time.mktime((now_plus_expiration).timetuple()),
+            "exp": now_plus_expiration,
         }, settings.JWT_SECRET, algorithm="HS256")
         return token
+
+    @staticmethod
+    def decode_jwt_token(token: str) -> Union[dict, None]:
+        try:
+            return jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            return None
+        except jwt.InvalidTokenError:
+            return None
