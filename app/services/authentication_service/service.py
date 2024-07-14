@@ -1,3 +1,4 @@
+from uuid import UUID
 import jwt
 from datetime import datetime, timedelta, timezone
 from passlib.hash import argon2
@@ -35,9 +36,10 @@ class AuthenticationService:
         return token
 
     @staticmethod
-    def decode_jwt_token(token: str) -> Union[dict, None]:
+    def get_user_id_from_token(token: str) -> Union[UUID, None]:
         try:
-            return jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
+            token_payload = jwt.decode(token, settings.JWT_SECRET, algorithms=["HS256"])
+            return UUID(token_payload.get("user_id"))
         except jwt.ExpiredSignatureError:
             return None
         except jwt.InvalidTokenError:
