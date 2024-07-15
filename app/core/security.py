@@ -1,5 +1,5 @@
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.db import get_db
@@ -8,11 +8,20 @@ from app.schemas.user_shema import UserSchema
 from app.services.authentication_service.service import AuthenticationService
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/sign_in")
+security = HTTPBearer()
+
+
+def get_token_from_header(authorization: HTTPAuthorizationCredentials = Depends(security)) -> str:
+    if authorization.scheme.lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+        )
+    return authorization.credentials
 
 
 async def get_current_user(
-        token: str = Depends(oauth2_scheme),
+        token: str = Depends(get_token_from_header),
         db: AsyncSession = Depends(get_db)
         ) -> UserSchema:
     credentials_exception = HTTPException(
@@ -28,4 +37,4 @@ async def get_current_user(
     user = await user_repo.get_user_by_id(user_id)
     if user is None:
         raise credentials_exception
-    return user
+    return UserSchema.model_validate(user)
