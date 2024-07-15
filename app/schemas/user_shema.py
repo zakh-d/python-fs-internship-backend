@@ -24,6 +24,7 @@ class UserSignUpSchema(UserSignInSchema):
     email: Annotated[EmailStr, Field(max_length=49)]
     first_name: Annotated[str, Field(max_length=49)]
     last_name: Annotated[str, Field(max_length=49)]
+    password: Annotated[str, Field(min_length=8, max_length=255)]
     password_confirmation: str  # can be of any length bc never will be hashed or stored in db
 
     @model_validator(mode='after')
