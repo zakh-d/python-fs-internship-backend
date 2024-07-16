@@ -1,10 +1,15 @@
 from typing import AsyncGenerator
+from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from app.core.config import settings
 
 # Create the async engine
-engine = create_async_engine(settings.postgres_dsn, echo=settings.ENVIRONMENT == 'local')
+engine = create_async_engine(
+    settings.postgres_dsn,
+    echo=settings.ENVIRONMENT == 'local',
+    poolclass=NullPool
+)
 
 # Create the async session
 async_session = sessionmaker(
