@@ -19,11 +19,6 @@ services:
     restart: always
     env_file:
       - ./.env
-    volumes:
-      - app-db-data:/var/lib/postgresql/data
   redis:
     image: redis
     restart: always
-    
-volumes:
-  app-db-data:
