@@ -12,7 +12,7 @@ services:
       - ./tests:/code/tests
     env_file:
       - ./.env
-    command: pytest .
+    command: fastapi run app/main.py
 
   postgres:
     image: postgres
