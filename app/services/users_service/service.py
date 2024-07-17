@@ -1,3 +1,5 @@
+from typing import Annotated
+from fastapi import Depends
 from passlib.hash import argon2
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,19 +15,18 @@ from app.utils.logging import logger
 
 class UserService:
 
-    @staticmethod
-    async def get_all_users(db: AsyncSession) -> UserList:
-        user_repository = UserRepository(db)
-        users = await user_repository.get_all_users()
+    def __init__(self, user_repository: Annotated[AsyncSession, Depends(UserRepository)]):
+        self.user_repository = user_repository
+
+    async def get_all_users(self) -> UserList:
+        users = await self.user_repository.get_all_users()
         return UserList(users=[UserSchema.model_validate(user) for user in users])
 
-    @staticmethod
-    async def create_user(db: AsyncSession, user_data: UserSignUpSchema):
-        user_repository = UserRepository(db)
+    async def create_user(self, user_data: UserSignUpSchema):
 
         hashed_password = argon2.hash(user_data.password)
 
-        created_user = user_repository.create_user_with_hashed_password(
+        created_user = self.user_repository.create_user_with_hashed_password(
             username=user_data.username,
             first_name=user_data.first_name,
             last_name=user_data.last_name,
@@ -33,7 +34,7 @@ class UserService:
             hashed_password=hashed_password
         )
         try:
-            await user_repository.commit_me(created_user)
+            await self.user_repository.commit_me(created_user)
             logger.info(f"User with id: {created_user.id} created successfully!")
         except IntegrityError as e:
             conflicting_field, value = get_conflicting_field(e)
@@ -41,27 +42,23 @@ class UserService:
             raise UserAlreadyExistsException(f"User with {conflicting_field}: '{value}' already exists!")
         return UserSchema.model_validate(created_user)
 
-    @staticmethod
-    async def get_user_by_id(db: AsyncSession, user_id: str):
-        user_repository = UserRepository(db)
-        user = await user_repository.get_user_by_id(user_id)
+    async def get_user_by_id(self, user_id: str):
+        user = await self.user_repository.get_user_by_id(user_id)
         if not user:
             raise UserNotFoundException('id', user_id)
         return UserDetail.model_validate(user)
 
-    @staticmethod
-    async def update_user(db: AsyncSession, user_id: str, user_data: UserUpdateSchema) -> UserDetail:
-        user_repository = UserRepository(db)
-        user = await user_repository.get_user_by_id(user_id)
+    async def update_user(self, user_id: str, user_data: UserUpdateSchema) -> UserDetail:
+        user = await self.user_repository.get_user_by_id(user_id)
         if not user:
             raise UserNotFoundException('id', user_id)
 
         if not argon2.verify(user_data.password, user.hashed_password):
             raise InvalidPasswordException()
 
-        user_repository.update_user(user, user_data.model_dump(exclude_unset=True, exclude={'password'}))
+        self.user_repository.update_user(user, user_data.model_dump(exclude_unset=True, exclude={'password'}))
         try:
-            await user_repository.commit_me(user)
+            await self.user_repository.commit_me(user)
             logger.info(f"User with id: {user.id} updated successfully!")
         except IntegrityError as e:
             conflicting_field, value = get_conflicting_field(e)
@@ -70,13 +67,11 @@ class UserService:
 
         return UserDetail.model_validate(user)
 
-    @staticmethod
-    async def delete_user(db: AsyncSession, user_id: str):
-        user_repository = UserRepository(db)
-        user = await user_repository.get_user_by_id(user_id)
+    async def delete_user(self, user_id: str):
+        user = await self.user_repository.get_user_by_id(user_id)
         if not user:
             raise UserNotFoundException('id', user_id)
 
-        await user_repository.delete_user(user)
-        await user_repository.commit_me(user, refresh=False)
+        await self.user_repository.delete_user(user)
+        await self.user_repository.commit_me(user, refresh=False)
         logger.info(f"User with id: {user.id} deleted successfully!")

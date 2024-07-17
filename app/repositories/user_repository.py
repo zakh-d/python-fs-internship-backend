@@ -1,14 +1,16 @@
-from typing import Union
+from typing import Annotated, Union
 from uuid import UUID
+from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.db import get_db
 from app.db.models import User
 
 
 class UserRepository:
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: Annotated[AsyncSession, Depends(get_db)]):
         self.db: AsyncSession = db
 
     async def get_all_users(self):

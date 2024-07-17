@@ -1,8 +1,7 @@
+from typing import Annotated
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.db import get_db
 from app.schemas.user_shema import UserDetail, UserSchema, UserSignUpSchema, UserList, UserUpdateSchema
 from app.services import UserService
 from app.services.users_service.exceptions import (
@@ -13,30 +12,37 @@ router = APIRouter()
 
 
 @router.get("/")
-async def read_users(db: AsyncSession = Depends(get_db)) -> UserList:
-    return await UserService.get_all_users(db)
+async def read_users(user_service: Annotated[UserService, Depends(UserService)]) -> UserList:
+    return await user_service.get_all_users()
 
 
 @router.post("/sign_up/")
-async def user_sign_up(user: UserSignUpSchema, db: AsyncSession = Depends(get_db)) -> UserSchema:
+async def user_sign_up(
+    user: UserSignUpSchema,
+    user_service: Annotated[UserService, Depends(UserService)]
+) -> UserSchema:
     try:
-        return await UserService.create_user(db, user)
+        return await user_service.create_user(user)
     except UserAlreadyExistsException as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/{user_id}")
-async def read_user(user_id: UUID, db: AsyncSession = Depends(get_db)) -> UserDetail:
+async def read_user(user_id: UUID, user_service: Annotated[UserService, Depends(UserService)]) -> UserDetail:
     try:
-        return await UserService.get_user_by_id(db, user_id)
+        return await user_service.get_user_by_id(user_id)
     except UserNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
 
 
 @router.put("/{user_id}")
-async def update_user(user_id: UUID, user: UserUpdateSchema, db: AsyncSession = Depends(get_db)) -> UserDetail:
+async def update_user(
+    user_id: UUID,
+    user: UserUpdateSchema,
+    user_service: Annotated[UserService, Depends(UserService)]
+) -> UserDetail:
     try:
-        return await UserService.update_user(db, user_id, user)
+        return await user_service.update_user(user_id, user)
     except UserNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
     except InvalidPasswordException:
@@ -46,8 +52,11 @@ async def update_user(user_id: UUID, user: UserUpdateSchema, db: AsyncSession = 
 
 
 @router.delete("/{user_id}")
-async def delete_user(user_id: UUID, db: AsyncSession = Depends(get_db)):
+async def delete_user(
+    user_id: UUID,
+    user_service: Annotated[UserService, Depends(UserService)]
+):
     try:
-        await UserService.delete_user(db, user_id)
+        await user_service.delete_user(user_id)
     except UserNotFoundException as e:
         raise HTTPException(status_code=404, detail=str(e))
