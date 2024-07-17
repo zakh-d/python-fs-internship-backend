@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import get_current_user
 from app.db.db import get_db
-from app.schemas.user_shema import UserSchema, UserSignInSchema
+from app.schemas.user_shema import UserDetail, UserSignInSchema
 from app.services.authentication_service import AuthenticationService
 
 
@@ -20,6 +20,6 @@ async def sign_in(user_sign_in: UserSignInSchema, db: AsyncSession = Depends(get
     return {"access_token": token}
 
 
-@router.post('/me')
-async def get_me(current_user: Annotated[UserSchema, Depends(get_current_user)]) -> UserSchema:
+@router.get('/me')
+async def get_me(current_user: Annotated[UserDetail, Depends(get_current_user)]) -> UserDetail:
     return current_user

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.db import get_db
 from app.repositories.user_repository import UserRepository
-from app.schemas.user_shema import UserSchema
+from app.schemas.user_shema import UserDetail
 from app.services.authentication_service.service import AuthenticationService
 
 
@@ -23,7 +23,7 @@ def get_token_from_header(authorization: HTTPAuthorizationCredentials = Depends(
 async def get_current_user(
         token: str = Depends(get_token_from_header),
         db: AsyncSession = Depends(get_db)
-        ) -> UserSchema:
+        ) -> UserDetail:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -37,4 +37,4 @@ async def get_current_user(
     user = await user_repo.get_user_by_id(user_id)
     if user is None:
         raise credentials_exception
-    return UserSchema.model_validate(user)
+    return UserDetail.model_validate(user)
