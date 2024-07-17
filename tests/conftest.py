@@ -7,6 +7,7 @@ from typing import Generator
 from app.main import app
 from app.db.db import async_session
 from app.repositories import UserRepository
+from app.services.users_service import UserService
 
 
 @pytest.fixture(autouse=True)
@@ -32,3 +33,8 @@ async def get_db():
 @pytest.fixture
 def user_repo(get_db):
     return UserRepository(get_db)
+
+
+@pytest.fixture
+def user_service(user_repo):
+    return UserService(user_repo)

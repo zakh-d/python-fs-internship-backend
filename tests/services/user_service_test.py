@@ -1,8 +1,6 @@
 import uuid
 import pytest
 from passlib.hash import argon2
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.repositories import UserRepository
 from app.schemas.user_shema import UserSignUpSchema, UserUpdateSchema
 from app.services.users_service import UserService
@@ -14,7 +12,7 @@ from app.services.users_service.exceptions import (
 @pytest.mark.asyncio
 async def test_get_all_users(
     user_repo: UserRepository,
-    get_db: AsyncSession,
+    user_service: UserService,
 ):
     john_snow = user_repo.create_user_with_hashed_password(
         username='john_snow',
@@ -35,14 +33,14 @@ async def test_get_all_users(
     await user_repo.commit_me(john_snow)
     await user_repo.commit_me(daenerys)
 
-    users = await UserService.get_all_users(get_db)
+    users = await user_service.get_all_users()
     assert len(users.users) == 2
 
 
 @pytest.mark.asyncio
 async def test_create_user(
     user_repo: UserRepository,
-    get_db: AsyncSession,
+    user_service: UserService,
 ):
     john_snow = UserSignUpSchema(
         username='john_snow',
@@ -53,7 +51,7 @@ async def test_create_user(
         password_confirmation='password123',
     )
     try:
-        john_snow = await UserService.create_user(get_db, john_snow)
+        john_snow = await user_service.create_user(john_snow)
     except Exception:
         assert 1 == 0, 'UserService unexpectedly threw an exception'  # This should not happen
 
@@ -67,7 +65,7 @@ async def test_create_user(
 @pytest.mark.asyncio
 async def test_create_user_already_existing(
     user_repo: UserRepository,
-    get_db: AsyncSession,
+    user_service: UserService
 ):
     john_snow = user_repo.create_user_with_hashed_password(
         username='john_snow',
@@ -89,7 +87,7 @@ async def test_create_user_already_existing(
     )
 
     try:
-        await UserService.create_user(get_db, john_snow)
+        await user_service.create_user(john_snow)
         assert 1 == 0, 'UserService did not throw an exception'
     except UserAlreadyExistsException:
         pass
@@ -100,7 +98,7 @@ async def test_create_user_already_existing(
 @pytest.mark.asyncio
 async def test_get_user_by_id(
     user_repo: UserRepository,
-    get_db: AsyncSession,
+    user_service: UserService
 ):
     # Create a user and commit it to the database
     john_snow = user_repo.create_user_with_hashed_password(
@@ -113,7 +111,7 @@ async def test_get_user_by_id(
     await user_repo.commit_me(john_snow)
 
     # Call the get_user_by_id method
-    user = await UserService.get_user_by_id(get_db, john_snow.id)
+    user = await user_service.get_user_by_id(john_snow.id)
 
     # Assert that the returned user is not None
     assert user is not None
@@ -132,12 +130,12 @@ async def test_get_user_by_id(
 @pytest.mark.asyncio
 async def test_get_user_by_id_user_not_found(
     user_repo: UserRepository,
-    get_db: AsyncSession,
+    user_service: UserService
 ):
     # Call the get_user_by_id method with an invalid user id
     try:
         user_id = uuid.uuid4()
-        await UserService.get_user_by_id(get_db, user_id)
+        await user_service.get_user_by_id(user_id)
         assert 1 == 0, 'UserService did not throw an exception'
     except UserNotFoundException:
         pass
@@ -146,7 +144,7 @@ async def test_get_user_by_id_user_not_found(
 @pytest.mark.asyncio
 async def test_update_user(
     user_repo: UserRepository,
-    get_db: AsyncSession,
+    user_service: UserService
 ):
     # Create a user and commit it to the database
     john_snow = user_repo.create_user_with_hashed_password(
@@ -164,11 +162,11 @@ async def test_update_user(
         password='password123'
     )
     try:
-        await UserService.update_user(get_db, john_snow.id, update_schema)
+        await user_service.update_user(john_snow.id, update_schema)
     except Exception:
         assert 1 == 0, 'UserService unexpectedly threw an exception'
 
-    await get_db.refresh(john_snow)
+    john_snow = await user_repo.get_user_by_id(john_snow.id)
 
     assert john_snow.first_name == 'Johny'
 
@@ -176,14 +174,14 @@ async def test_update_user(
 @pytest.mark.asyncio
 async def test_update_user_user_not_found(
     user_repo: UserRepository,
-    get_db: AsyncSession,
+    user_service: UserService
 ):
     update_schema = UserUpdateSchema(
         first_name='Johny',
         password='password123'
     )
     try:
-        await UserService.update_user(get_db, uuid.uuid4(), update_schema)
+        await user_service.update_user(uuid.uuid4(), update_schema)
         assert 1 == 0, 'UserService did not throw an exception'
     except UserNotFoundException:
         pass
@@ -192,7 +190,7 @@ async def test_update_user_user_not_found(
 @pytest.mark.asyncio
 async def test_update_user_invalid_password(
     user_repo: UserRepository,
-    get_db: AsyncSession,
+    user_service: UserService
 ):
     # Create a user and commit it to the database
     john_snow = user_repo.create_user_with_hashed_password(
@@ -210,12 +208,12 @@ async def test_update_user_invalid_password(
         password='password1231'
     )
     try:
-        await UserService.update_user(get_db, john_snow.id, update_schema)
+        await user_service.update_user(john_snow.id, update_schema)
         assert 1 == 0, 'UserService did not throw an exception'
     except InvalidPasswordException:
         pass
 
-    await get_db.refresh(john_snow)
+    john_snow = await user_repo.get_user_by_id(john_snow.id)
 
     assert john_snow.first_name == 'John'
 
@@ -227,7 +225,7 @@ async def test_update_user_invalid_password(
 ])
 async def test_update_user_user_already_exists(
     user_repo: UserRepository,
-    get_db: AsyncSession,
+    user_service: UserService,
     conflict_field: str,
     value: str,
 ):
@@ -257,7 +255,7 @@ async def test_update_user_user_already_exists(
     update_schema.__setattr__(conflict_field, value)
 
     try:
-        await UserService.update_user(get_db, daenerys.id, update_schema)
+        await user_service.update_user(daenerys.id, update_schema)
         assert 1 == 0, 'UserService did not throw an exception'
     except UserAlreadyExistsException as e:
         assert str(e) == f"User with {conflict_field}: '{value}' already exists!"
@@ -266,7 +264,7 @@ async def test_update_user_user_already_exists(
 @pytest.mark.asyncio
 async def test_delete_user(
     user_repo: UserRepository,
-    get_db: AsyncSession,
+    user_service: UserService
 ):
     john_snow = user_repo.create_user_with_hashed_password(
         username='john_snow',
@@ -278,7 +276,7 @@ async def test_delete_user(
 
     await user_repo.commit_me(john_snow)
 
-    await UserService.delete_user(get_db, john_snow.id)
+    await user_service.delete_user(john_snow.id)
 
     users = await user_repo.get_all_users()
 
@@ -288,10 +286,10 @@ async def test_delete_user(
 @pytest.mark.asyncio
 async def test_delete_user_user_not_found(
     user_repo: UserRepository,
-    get_db: AsyncSession,
+    user_service: UserService
 ):
     try:
-        await UserService.delete_user(get_db, uuid.uuid4())
+        await user_service.delete_user(uuid.uuid4())
         assert 1 == 0, 'UserService did not throw an exception'
     except UserNotFoundException:
         pass
