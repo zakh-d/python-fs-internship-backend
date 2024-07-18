@@ -1,5 +1,6 @@
 from typing import Annotated, Union
 from uuid import UUID
+
 from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +14,7 @@ class UserRepository:
     def __init__(self, db: Annotated[AsyncSession, Depends(get_db)]):
         self.db: AsyncSession = db
 
-    async def get_all_users(self):
+    async def get_all_users(self) -> list[User]:
         results = await self.db.execute(select(User))
         return results.scalars().all()
 
@@ -37,14 +38,14 @@ class UserRepository:
 
         return user
 
-    async def delete_user(self, user: User):
+    async def delete_user(self, user: User) -> None:
         await self.db.delete(user)
 
-    def update_user(self, user: User, user_data: dict):
+    def update_user(self, user: User, user_data: dict) -> None:
         for field, value in user_data.items():
             setattr(user, field, value)
 
-    async def commit_me(self, user: User, refresh=True):
+    async def commit_me(self, user: User, refresh=True) -> None:
         await self.db.commit()
         if refresh:
             await self.db.refresh(user)

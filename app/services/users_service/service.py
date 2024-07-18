@@ -1,13 +1,22 @@
 from typing import Annotated
+
 from fastapi import Depends
 from passlib.hash import argon2
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories import UserRepository
-from app.schemas.user_shema import UserDetail, UserSchema, UserList, UserSignUpSchema, UserUpdateSchema
+from app.schemas.user_shema import (
+    UserDetail,
+    UserList,
+    UserSchema,
+    UserSignUpSchema,
+    UserUpdateSchema,
+)
 from app.services.users_service.exceptions import (
-    UserAlreadyExistsException, UserNotFoundException, InvalidPasswordException
+    InvalidPasswordException,
+    UserAlreadyExistsException,
+    UserNotFoundException,
 )
 from app.utils.error_parser import get_conflicting_field
 from app.utils.logging import logger
@@ -22,7 +31,7 @@ class UserService:
         users = await self.user_repository.get_all_users()
         return UserList(users=[UserSchema.model_validate(user) for user in users])
 
-    async def create_user(self, user_data: UserSignUpSchema):
+    async def create_user(self, user_data: UserSignUpSchema) -> UserSchema:
 
         hashed_password = argon2.hash(user_data.password)
 
@@ -42,7 +51,7 @@ class UserService:
             raise UserAlreadyExistsException(f"User with {conflicting_field}: '{value}' already exists!")
         return UserSchema.model_validate(created_user)
 
-    async def get_user_by_id(self, user_id: str):
+    async def get_user_by_id(self, user_id: str) -> UserDetail:
         user = await self.user_repository.get_user_by_id(user_id)
         if not user:
             raise UserNotFoundException('id', user_id)
@@ -67,7 +76,7 @@ class UserService:
 
         return UserDetail.model_validate(user)
 
-    async def delete_user(self, user_id: str):
+    async def delete_user(self, user_id: str) -> None:
         user = await self.user_repository.get_user_by_id(user_id)
         if not user:
             raise UserNotFoundException('id', user_id)
