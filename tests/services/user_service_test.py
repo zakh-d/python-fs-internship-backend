@@ -258,7 +258,7 @@ async def test_update_user_user_already_exists(
         await user_service.update_user(daenerys.id, update_schema)
         assert 1 == 0, 'UserService did not throw an exception'
     except UserAlreadyExistsException as e:
-        assert str(e) == f"User with {conflict_field}: '{value}' already exists!"
+        assert e.detail == f"User with {conflict_field}: '{value}' already exists!"
 
 
 @pytest.mark.asyncio
