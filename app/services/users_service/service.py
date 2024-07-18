@@ -40,7 +40,7 @@ class UserService:
         except IntegrityError as e:
             conflicting_field, value = get_conflicting_field(e)
             logger.error(f"User with {conflicting_field}: '{value}' already exists!")
-            raise UserAlreadyExistsException(f"User with {conflicting_field}: '{value}' already exists!")
+            raise UserAlreadyExistsException(conflicting_field, value)
         return UserSchema.model_validate(created_user)
 
     async def get_user_by_id(self, user_id: str) -> UserDetail:
@@ -64,7 +64,7 @@ class UserService:
         except IntegrityError as e:
             conflicting_field, value = get_conflicting_field(e)
             logger.error(f"Cannot update user to {conflicting_field}: '{value}'!")
-            raise UserAlreadyExistsException(f"User with {conflicting_field}: '{value}' already exists!")
+            raise UserAlreadyExistsException(conflicting_field, value)
 
         return UserDetail.model_validate(user)
 

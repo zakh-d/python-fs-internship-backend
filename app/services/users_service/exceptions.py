@@ -1,16 +1,29 @@
-class UserNotFoundException(Exception):
-    def __init__(self, field_name: str, value: any, *args: object) -> None:
-        self.field_name = field_name
-        self.value = value
-        super().__init__(*args)
+from typing import Any
 
-    def __str__(self) -> str:
-        return f'User with {self.field_name}={self.value} not found!'
+from fastapi import HTTPException, status
 
 
-class InvalidPasswordException(Exception):
-    pass
+class UserNotFoundException(HTTPException):
+    def __init__(self, field_name: str, value: any) -> None:
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'User with {field_name}={value} not found!'
+        )
 
 
-class UserAlreadyExistsException(Exception):
-    pass
+class InvalidPasswordException(HTTPException):
+
+    def __init__(self) -> None:
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail='Invalid credentials',
+        )
+
+
+class UserAlreadyExistsException(HTTPException):
+
+    def __init__(self, conflicting_field: str, value: Any) -> None:
+        super().__init__(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f'User with {conflicting_field}: {value} already exists!'
+        )
