@@ -1,5 +1,6 @@
 from datetime import datetime
-from typing import Annotated, Optional, Self
+from typing import Annotated, Optional
+from typing_extensions import Self
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
