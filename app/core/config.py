@@ -1,26 +1,31 @@
 from typing import Any, Literal
-from pydantic import Field
 
+from pydantic import Field
 from pydantic.fields import FieldInfo
-from pydantic_settings import BaseSettings, EnvSettingsSource
+from pydantic_settings import BaseSettings, EnvSettingsSource, PydanticBaseSettingsSource
 
 
 class CustomSettingsSource(EnvSettingsSource):
-
-    def prepare_field_value(self, field_name: str, field: FieldInfo, value: Any, value_is_complex: bool) -> Any:
+    def prepare_field_value(
+        self: 'CustomSettingsSource', field_name: str, field: FieldInfo, value: Any, value_is_complex: bool
+    ) -> Any:
         if field_name == 'ALLOWED_HOSTS':
             return value.strip().split(',')
         return super().prepare_field_value(field_name, field, value, value_is_complex)
 
 
 class Settings(BaseSettings):
-
     ALLOWED_HOSTS: list[str] = Field(default_factory=list)
 
     @classmethod
     def settings_customise_sources(
-        cls, settings_cls, init_settings, env_settings, dotenv_settings, file_secret_settings
-    ):
+        cls,
+        settings_cls: type[BaseSettings],
+        init_settings: PydanticBaseSettingsSource,
+        env_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+        file_secret_settings: PydanticBaseSettingsSource,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
         return (
             init_settings,
             CustomSettingsSource(settings_cls),
@@ -35,17 +40,21 @@ class Settings(BaseSettings):
     POSTGRES_DB_HOST: str
 
     @property
-    def postgres_dsn(self) -> str:
-        return f'postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_DB_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}'
+    def postgres_dsn(self: 'Settings') -> str:
+        return (
+            f'postgresql+asyncpg://{self.POSTGRES_USER}'
+            f':{self.POSTGRES_PASSWORD}@{self.POSTGRES_DB_HOST}'
+            f':{self.POSTGRES_PORT}/{self.POSTGRES_DB}'
+        )
 
     REDIS_HOST: str
     REDIS_PORT: int = 6379
 
     @property
-    def redis_url(self) -> str:
+    def redis_url(self: 'Settings') -> str:
         return f'redis://{self.REDIS_HOST}:{self.REDIS_PORT}'
 
-    ENVIRONMENT: Literal["local", "staging", "production"] = "local"
+    ENVIRONMENT: Literal['local', 'staging', 'production'] = 'local'
 
 
 settings = Settings()

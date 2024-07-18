@@ -1,6 +1,7 @@
 from datetime import datetime
-from typing import Annotated, Optional
+from typing import Annotated, Optional, Self
 from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 
@@ -27,7 +28,7 @@ class UserSignUpSchema(UserSignInSchema):
     password_confirmation: str  # can be of any length bc never will be hashed or stored in db
 
     @model_validator(mode='after')
-    def check_passwords_match(self):
+    def check_passwords_match(self) -> Self:
         pw1 = self.password
         pw2 = self.password_confirmation
         if pw1 is not None and pw2 is not None and pw1 != pw2:

@@ -10,7 +10,6 @@ from app.db.models import User
 
 
 class UserRepository:
-
     def __init__(self, db: Annotated[AsyncSession, Depends(get_db)]):
         self.db: AsyncSession = db
 
@@ -22,12 +21,9 @@ class UserRepository:
         results = await self.db.execute(select(User).where(User.id == user_id))
         return results.scalars().first()
 
-    def create_user_with_hashed_password(self,
-                                         username: str,
-                                         first_name: Union[str, None],
-                                         last_name: Union[str, None],
-                                         email: str,
-                                         hashed_password: str) -> User:
+    def create_user_with_hashed_password(
+        self, username: str, first_name: Union[str, None], last_name: Union[str, None], email: str, hashed_password: str
+    ) -> User:
         user = User()
         user.username = username
         user.first_name = first_name
@@ -45,7 +41,7 @@ class UserRepository:
         for field, value in user_data.items():
             setattr(user, field, value)
 
-    async def commit_me(self, user: User, refresh=True) -> None:
+    async def commit_me(self, user: User, refresh: bool = True) -> None:
         await self.db.commit()
         if refresh:
             await self.db.refresh(user)
