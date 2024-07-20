@@ -34,6 +34,7 @@ To create new alembic migration run following command
 this would automatically check models, that were inheritted from ```Base``` class in ```app.db.models``` module, whether there were any changes, if so I would generate migrations files inside ```app/db/migrations``` folder. You **MUST** check created file
 
 ## Testing
+Just run prepared script
 ```
-docker compose exec api pytest
+./test.sh
 ```

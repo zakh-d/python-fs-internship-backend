@@ -1,14 +1,16 @@
 from datetime import datetime
+from uuid import UUID, uuid4
+
 from sqlalchemy import TIMESTAMP, String, Uuid
 from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy.orm import mapped_column, Mapped, declarative_base
-from uuid import UUID
+from sqlalchemy.orm import Mapped, declarative_base, mapped_column
 
 Base = declarative_base()
 
 
 class ModelBase(AsyncAttrs, Base):
     """Base class for all models containing UUID as primary key."""
+
     __abstract__ = True
 
     type_annotation_map = {
@@ -17,9 +19,9 @@ class ModelBase(AsyncAttrs, Base):
         str: String,
     }
 
-    id: Mapped[UUID] = mapped_column(primary_key=True)
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     created_at: Mapped[datetime] = mapped_column(server_default='now()')
-    updated_at: Mapped[datetime] = mapped_column(server_default='now()', onupdate='now()')
+    updated_at: Mapped[datetime] = mapped_column(server_default='now()', onupdate=datetime.now)
 
 
 class User(ModelBase):
@@ -32,5 +34,5 @@ class User(ModelBase):
     email: Mapped[str] = mapped_column(String(50), index=True, unique=True)
     hashed_password: Mapped[str] = mapped_column(String(256))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<User {self.username}>'

@@ -1,7 +1,9 @@
 from datetime import datetime
-from typing import Annotated, Self
+from typing import Annotated, Optional
+from typing_extensions import Self
 from uuid import UUID
-from pydantic import BaseModel, EmailStr, Field, model_validator
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 
 class UserSchema(BaseModel):
@@ -11,6 +13,8 @@ class UserSchema(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class UserSignInSchema(BaseModel):
     username: str
@@ -19,6 +23,9 @@ class UserSignInSchema(BaseModel):
 
 class UserSignUpSchema(UserSignInSchema):
     email: Annotated[EmailStr, Field(max_length=49)]
+    first_name: Annotated[str, Field(max_length=49)]
+    last_name: Annotated[str, Field(max_length=49)]
+    password: Annotated[str, Field(min_length=8, max_length=255)]
     password_confirmation: str  # can be of any length bc never will be hashed or stored in db
 
     @model_validator(mode='after')
@@ -31,13 +38,16 @@ class UserSignUpSchema(UserSignInSchema):
 
 
 class UserUpdateSchema(BaseModel):
-    username: Annotated[str, Field(min_length=3, max_length=49)]
-    email: Annotated[EmailStr, Field(max_length=49)]
+    username: Optional[Annotated[str, Field(min_length=3, max_length=49)]] = None
+    first_name: Optional[Annotated[str, Field(max_length=49)]] = None
+    last_name: Optional[Annotated[str, Field(max_length=49)]] = None
+    email: Optional[Annotated[EmailStr, Field(max_length=49)]] = None
     password: Annotated[str, Field(max_length=255)]  # password needed to cofirm user intentions
 
 
 class UserDetail(UserSchema):
-    pass
+    first_name: Annotated[str, Field(max_length=49)]
+    last_name: Annotated[str, Field(max_length=49)]
 
 
 class UserList(BaseModel):
