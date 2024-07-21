@@ -1,3 +1,4 @@
+import secrets
 from typing import Annotated, Union
 from uuid import UUID
 
@@ -21,6 +22,10 @@ class UserRepository:
         results = await self.db.execute(select(User).where(User.id == user_id))
         return results.scalars().first()
 
+    async def get_user_by_email(self, email: str) -> User:
+        results = await self.db.execute(select(User).where(User.email == email))
+        return results.scalars().first()
+
     async def get_user_by_username(self, username: str) -> User:
         results = await self.db.execute(select(User).where(User.username == username))
         return results.scalars().first()
@@ -39,6 +44,19 @@ class UserRepository:
         user.hashed_password = hashed_password
         self.db.add(user)
 
+        return user
+
+    async def get_user_by_email_or_create(self, email: str) -> User:
+        user = await self.get_user_by_email(email)
+        if user is None:
+            user = self.create_user_with_hashed_password(
+                secrets.token_urlsafe(20),
+                None,
+                None,
+                email,
+                str(secrets.token_hex(100))
+            )
+            await self.commit_me(user)
         return user
 
     async def delete_user(self, user: User) -> None:

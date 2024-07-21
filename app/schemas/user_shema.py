@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Optional
+from typing import Annotated, Optional, Union
 from typing_extensions import Self
 from uuid import UUID
 
@@ -46,8 +46,8 @@ class UserUpdateSchema(BaseModel):
 
 
 class UserDetail(UserSchema):
-    first_name: Annotated[str, Field(max_length=49)]
-    last_name: Annotated[str, Field(max_length=49)]
+    first_name: Union[Annotated[str, Field(max_length=49)], None]
+    last_name: Union[Annotated[str, Field(max_length=49)], None]
 
 
 class UserList(BaseModel):
