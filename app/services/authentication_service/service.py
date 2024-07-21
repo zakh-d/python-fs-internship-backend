@@ -1,9 +1,9 @@
 from uuid import UUID
+from fastapi import Depends
 import jwt
 from datetime import datetime, timedelta, timezone
 from passlib.hash import argon2
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Union
+from typing import Annotated, Union
 
 from app.core.config import settings
 from app.repositories.user_repository import UserRepository
@@ -12,11 +12,12 @@ from app.schemas.user_shema import UserSchema, UserSignInSchema
 
 class AuthenticationService:
 
-    @staticmethod
-    async def authenticate(db: AsyncSession, user_signin_request: UserSignInSchema) -> Union[UserSchema, None]:
-        user_repository = UserRepository(db)
+    def __init__(self, user_repository: Annotated[UserRepository, Depends(UserRepository)]):
+        self.user_repository = user_repository
 
-        user = await user_repository.get_user_by_username(user_signin_request.username)
+    async def authenticate(self, user_signin_request: UserSignInSchema) -> Union[UserSchema, None]:
+
+        user = await self.user_repository.get_user_by_username(user_signin_request.username)
 
         if user is None:
             return None
