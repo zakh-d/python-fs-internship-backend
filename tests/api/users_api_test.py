@@ -1,9 +1,10 @@
-import uuid
 import pytest
 from fastapi.testclient import TestClient
 from passlib.hash import argon2
 
 from app.repositories import UserRepository
+from app.schemas.user_shema import UserSchema
+from app.services.authentication_service import AuthenticationService
 
 
 def test_get_user_list(client: TestClient, fake_authentication):
@@ -127,7 +128,6 @@ def test_user_create_email_invalid(client: TestClient):
 async def test_user_update(
         client: TestClient,
         user_repo: UserRepository,
-        fake_authentication
 ):
     user = user_repo.create_user_with_hashed_password(
         username='john_snow',
@@ -138,10 +138,13 @@ async def test_user_update(
     )
 
     await user_repo.commit_me(user)
+    auth_service = AuthenticationService(user_repo)
+    access_token = auth_service.generate_jwt_token(UserSchema.model_validate(user))
 
-    response = client.put(f'/users/{user.id}', json={
+    response = client.put('/users/me', json={
         'first_name': 'Johny',
-        'password': 'password123'
+    }, headers={
+        'Authorization': f'Bearer {access_token}'
     })
     assert response.status_code == 200
 
@@ -150,10 +153,34 @@ async def test_user_update(
 
 
 @pytest.mark.asyncio
+async def test_user_cannot_update_password_without_credetials(
+        client: TestClient,
+        user_repo: UserRepository,
+):
+    user = user_repo.create_user_with_hashed_password(
+        username='john_snow',
+        first_name='John',
+        last_name='Snow',
+        email='lord_commander@north.wall',
+        hashed_password=argon2.hash('password123')
+    )
+
+    await user_repo.commit_me(user)
+    auth_service = AuthenticationService(user_repo)
+    access_token = auth_service.generate_jwt_token(UserSchema.model_validate(user))
+
+    response = client.put('/users/me', json={
+        'new_password': 'testpass123'
+    }, headers={
+        'Authorization': f'Bearer {access_token}'
+    })
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
 async def test_user_update_invalid_password(
         client: TestClient,
         user_repo: UserRepository,
-        fake_authentication
 ):
     user = user_repo.create_user_with_hashed_password(
         username='john_snow',
@@ -164,62 +191,25 @@ async def test_user_update_invalid_password(
     )
     await user_repo.commit_me(user)
 
-    response = client.put(f'/users/{user.id}', json={
-        'first_name': 'Johny',
+    auth_service = AuthenticationService(user_repo)
+    access_token = auth_service.generate_jwt_token(UserSchema.model_validate(user))
+
+    response = client.put('/users/me', json={
+        'new_password': 'password1234',
         'password': 'password1234'
+    }, headers={
+        'Authorization': f'Bearer {access_token}'
     })
 
     assert response.status_code == 401
 
 
-def test_user_update_user_not_found(client: TestClient, fake_authentication):
-    response = client.put(f'/users/{uuid.uuid4()}', json={
-        'first_name': 'Johny',
-        'password': 'password123'
-    })
-    assert response.status_code == 404
-
-
-@pytest.mark.asyncio
-async def test_user_update_user_with_email_already_exists(
-        client: TestClient,
-        user_repo: UserRepository,
-        fake_authentication
-):
-    john_snow = user_repo.create_user_with_hashed_password(
-        username='john_snow',
-        first_name='John',
-        last_name='Snow',
-        email='test@mail.com',
-        hashed_password=argon2.hash('password123')
-    )
-
-    daenerys = user_repo.create_user_with_hashed_password(
-        username='daenerys',
-        first_name='Daenerys',
-        last_name='Targaryen',
-        email='mother.of@dragons',
-        hashed_password=argon2.hash('password123')
-    )
-
-    await user_repo.commit_me(john_snow)
-    await user_repo.commit_me(daenerys)
-
-    response = client.put(f'/users/{daenerys.id}', json={
-        'email': 'test@mail.com',
-        'password': 'password123'
-    })
-
-    assert response.status_code == 400
-    assert response.json() == {'detail': "User with email: 'test@mail.com' already exists!"}
-
-
 def test_update_very_long_password_rejects(
         client: TestClient,
-        fake_authentication
+        fake_authentication: None
 ):
     very_long_password = 'abc' * 1000
-    response = client.put(f'/users/{uuid.uuid4}/', json={
+    response = client.put('/users/me', json={
         'first_name': 'Robert',
         'password': very_long_password
     })
@@ -230,26 +220,29 @@ def test_update_very_long_password_rejects(
 @pytest.mark.asyncio
 async def test_user_delete(
         client: TestClient,
-        user_repo: UserRepository,
-        fake_authentication
+        user_repo: UserRepository
 ):
-    daenerys = user_repo.create_user_with_hashed_password(
-        username='daenerys',
-        first_name='Daenerys',
-        last_name='Targaryen',
-        email='mother.of@dragons',
+    user = user_repo.create_user_with_hashed_password(
+        username='john_snow',
+        first_name='John',
+        last_name='Snow',
+        email='lord_commander@north.wall',
         hashed_password=argon2.hash('password123')
     )
-    await user_repo.commit_me(daenerys)
+    await user_repo.commit_me(user)
 
-    response = client.delete(f'/users/{daenerys.id}')
+    auth_service = AuthenticationService(user_repo)
+    access_token = auth_service.generate_jwt_token(UserSchema.model_validate(user))
+
+    response = client.delete('/users/me', headers={'Authorization': f'Bearer {access_token}'})
     assert response.status_code == 200
 
     users = await user_repo.get_all_users()
     assert len(users) == 0
 
 
-def test_user_delete_user_not_found(client: TestClient, fake_authentication):
-    response = client.delete(f'/users/{uuid.uuid4()}')
-    assert response.status_code == 404
-    assert 'not found' in response.json()['detail']
+def test_user_delete_unauthorized_401(
+        client: TestClient
+):
+    response = client.delete('/users/me')
+    assert response.status_code == 401

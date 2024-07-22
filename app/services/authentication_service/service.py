@@ -25,7 +25,7 @@ class AuthenticationService:
 
         return UserSchema.model_validate(user)
 
-    def generate_jwt_token(user: UserSchema) -> str:
+    def generate_jwt_token(self, user: UserSchema) -> str:
         now_plus_expiration = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_EXPIRATION_MINUTES)
         token = jwt.encode(
             {

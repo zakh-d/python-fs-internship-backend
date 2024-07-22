@@ -17,7 +17,7 @@ async def sign_in(
     user = await auth_service.authenticate(user_sign_in)
     if user is None:
         raise HTTPException(status_code=401, detail='Invalid credentials')
-    token = AuthenticationService.generate_jwt_token(user)
+    token = auth_service.generate_jwt_token(user)
     return {'access_token': token}
 
 

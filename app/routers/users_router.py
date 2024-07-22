@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 
 from app.core.security import get_current_user
 from app.schemas.user_shema import UserDetail, UserList, UserSchema, UserSignUpSchema, UserUpdateSchema
@@ -34,24 +34,26 @@ async def read_user(
     return await user_service.get_user_by_id(user_id)
 
 
-@router.put('/{user_id}', response_model=UserDetail)
-async def update_user(
-    user_id: UUID,
+@router.get('/me', response_model=UserDetail)
+async def read_me(
+    user_service: Annotated[UserService, Depends(UserService)],
+    current_user: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
+) -> UserDetail:
+    return await user_service.get_user_by_id(current_user.id)
+
+
+@router.put('/me', response_model=UserDetail)
+async def update_me(
     user: UserUpdateSchema,
     user_service: Annotated[UserService, Depends(UserService)],
     current_user: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
 ) -> UserDetail:
-    if user_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
-    return await user_service.update_user(user_id, user)
+    return await user_service.update_user(current_user.id, user)
 
 
-@router.delete('/{user_id}')
-async def delete_user(
-    user_id: UUID,
+@router.delete('/me')
+async def delete_me(
     user_service: Annotated[UserService, Depends(UserService)],
     current_user: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
 ) -> None:
-    if user_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
-    await user_service.delete_user(user_id)
+    await user_service.delete_user(current_user.id)
