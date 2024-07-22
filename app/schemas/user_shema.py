@@ -17,7 +17,7 @@ class UserSchema(BaseModel):
 
 
 class UserSignInSchema(BaseModel):
-    username: str
+    email: Annotated[EmailStr, Field(max_length=49)]
     password: Annotated[str, Field(max_length=255)]
 
 

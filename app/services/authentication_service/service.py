@@ -17,7 +17,7 @@ class AuthenticationService:
 
     async def authenticate(self, user_signin_request: UserSignInSchema) -> Union[UserSchema, None]:
 
-        user = await self.user_repository.get_user_by_username(user_signin_request.username)
+        user = await self.user_repository.get_user_by_email(user_signin_request.email)
 
         if user is None:
             return None
