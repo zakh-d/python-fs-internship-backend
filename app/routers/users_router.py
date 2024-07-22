@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.core.security import get_current_user
 from app.schemas.user_shema import UserDetail, UserList, UserSchema, UserSignUpSchema, UserUpdateSchema
@@ -39,8 +39,10 @@ async def update_user(
     user_id: UUID,
     user: UserUpdateSchema,
     user_service: Annotated[UserService, Depends(UserService)],
-    _: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
+    current_user: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
 ) -> UserDetail:
+    if user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     return await user_service.update_user(user_id, user)
 
 
@@ -50,4 +52,6 @@ async def delete_user(
     user_service: Annotated[UserService, Depends(UserService)],
     current_user: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
 ) -> None:
+    if user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN)
     await user_service.delete_user(user_id)
