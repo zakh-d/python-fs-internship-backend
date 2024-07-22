@@ -26,10 +26,6 @@ class UserRepository:
         results = await self.db.execute(select(User).where(User.email == email))
         return results.scalars().first()
 
-    async def get_user_by_username(self, username: str) -> User:
-        results = await self.db.execute(select(User).where(User.username == username))
-        return results.scalars().first()
-
     def create_user_with_hashed_password(self,
                                          username: str,
                                          first_name: Union[str, None],
