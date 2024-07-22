@@ -54,10 +54,15 @@ class UserService:
         if not user:
             raise UserNotFoundException('id', user_id)
 
-        if not argon2.verify(user_data.password, user.hashed_password):
+        if user_data.new_password and not argon2.verify(user_data.password, user.hashed_password):
             raise InvalidPasswordException()
 
-        self.user_repository.update_user(user, user_data.model_dump(exclude_unset=True, exclude={'password'}))
+        new_user_data = user_data.model_dump(exclude_unset=True, exclude={'password'})
+        if user_data.new_password:
+            logger.info(f'Updated password for user with id: {user.id}')
+            new_user_data['hashed_password'] = argon2.hash(user_data.new_password)
+
+        self.user_repository.update_user(user, new_user_data)
         try:
             await self.user_repository.commit_me(user)
             logger.info(f'User with id: {user.id} updated successfully!')
