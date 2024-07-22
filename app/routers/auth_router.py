@@ -6,7 +6,6 @@ from app.core.security import get_current_user
 from app.schemas.user_shema import UserDetail, UserSignInSchema
 from app.services.authentication_service import AuthenticationService
 
-
 router = APIRouter()
 
 

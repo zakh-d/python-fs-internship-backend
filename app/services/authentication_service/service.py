@@ -1,10 +1,11 @@
 import secrets
-from uuid import UUID
-from fastapi import Depends
-import jwt
 from datetime import datetime, timedelta, timezone
-from passlib.hash import argon2
 from typing import Annotated, Union
+from uuid import UUID
+
+import jwt
+from fastapi import Depends
+from passlib.hash import argon2
 
 from app.core.config import settings
 from app.repositories.user_repository import UserRepository

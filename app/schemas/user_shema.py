@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import Annotated, Optional, Union
-from typing_extensions import Self
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from typing_extensions import Self
 
 
 class UserSchema(BaseModel):

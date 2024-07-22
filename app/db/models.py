@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import ClassVar
 from uuid import UUID, uuid4
 
 from sqlalchemy import TIMESTAMP, String, Uuid
@@ -13,7 +14,7 @@ class ModelBase(AsyncAttrs, Base):
 
     __abstract__ = True
 
-    type_annotation_map = {
+    type_annotation_map: ClassVar[dict] = {
         datetime: TIMESTAMP(timezone=True),
         UUID: Uuid,
         str: String,
