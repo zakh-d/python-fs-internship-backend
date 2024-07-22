@@ -46,7 +46,7 @@ class UserRepository:
         user = await self.get_user_by_email(email)
         if user is None:
             user = self.create_user_with_hashed_password(
-                secrets.token_urlsafe(20),
+                email.split('@')[0],
                 None,
                 None,
                 email,
