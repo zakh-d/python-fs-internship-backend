@@ -1,3 +1,4 @@
+import secrets
 from uuid import UUID
 from fastapi import Depends
 import jwt
@@ -63,6 +64,14 @@ class AuthenticationService:
 
         user_email = self._get_email_form_auth0_token(token)
         if user_email is not None:
-            user = await self.user_repository.get_user_by_email_or_create(user_email)
+
+            user = await self.user_repository.get_user_by_email(user_email)
+            if user is not None:
+                return user
+
+            user = self.user_repository.create_user_with_hashed_password(
+                user_email.split('@')[0], None, None, user_email, str(secrets.token_hex(100))
+            )
+            await self.user_repository.commit_me(user)
             return user
         return None

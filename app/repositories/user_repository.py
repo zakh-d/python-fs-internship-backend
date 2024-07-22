@@ -1,4 +1,3 @@
-import secrets
 from typing import Annotated, Union
 from uuid import UUID
 
@@ -37,15 +36,6 @@ class UserRepository:
         user.hashed_password = hashed_password
         self.db.add(user)
 
-        return user
-
-    async def get_user_by_email_or_create(self, email: str) -> User:
-        user = await self.get_user_by_email(email)
-        if user is None:
-            user = self.create_user_with_hashed_password(
-                email.split('@')[0], None, None, email, str(secrets.token_hex(100))
-            )
-            await self.commit_me(user)
         return user
 
     async def delete_user(self, user: User) -> None:
