@@ -28,7 +28,7 @@ async def test_user_create_success(
         "last_name": "Drogo",
         "password_confirmation": "stringst"
     }
-    response = client.post('/users/sign_up/', json=user_dict)
+    response = client.post('/users/', json=user_dict)
     assert response.status_code == 200
 
     data = response.json()
@@ -47,7 +47,7 @@ def test_user_create_passwords_min_length(client: TestClient):
         "last_name": "string",
         "password_confirmation": "s"
     }
-    response = client.post('/users/sign_up/', json=user_dict)
+    response = client.post('/users/', json=user_dict)
     assert response.status_code == 422
     data = response.json()
     assert data["detail"][0]["msg"] == "String should have at least 8 characters"
@@ -65,7 +65,7 @@ def test_user_create_passwords_max_length(client: TestClient):
         "password_confirmation": long_password
     }
 
-    response = client.post('/users/sign_up/', json=user_dict)
+    response = client.post('/users/', json=user_dict)
     assert response.status_code == 422
 
 
@@ -80,7 +80,7 @@ def test_user_create_passwords_must_match(client: TestClient):
         "password_confirmation": 'password_2'
     }
 
-    response = client.post('/users/sign_up/', json=user_dict)
+    response = client.post('/users/', json=user_dict)
     assert response.status_code == 422
 
 
@@ -108,7 +108,7 @@ async def test_user_create_email_already_exists(
         "password_confirmation": "stringst",
         "password": "stringst"
     })
-    response = client.post('/users/sign_up/', json=user_dict)
+    response = client.post('/users/', json=user_dict)
     assert response.status_code == 400
     assert response.json() == {'detail': "User with email: 'john@starks.com' already exists!"}
 
@@ -122,7 +122,7 @@ def test_user_create_email_invalid(client: TestClient):
         "last_name": "Snow",
         "password_confirmation": "stringst"
     }
-    response = client.post('/users/sign_up/', json=user_dict)
+    response = client.post('/users/', json=user_dict)
     assert response.status_code == 422
 
 
@@ -247,4 +247,50 @@ def test_user_delete_unauthorized_401(
         client: TestClient
 ):
     response = client.delete('/users/me')
+    assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_user_sign_in(
+    user_repo: UserRepository,
+    client: TestClient
+):
+    user = user_repo.create_user_with_hashed_password(
+        username='john_snow',
+        first_name='John',
+        last_name='Snow',
+        email='lord_commander@north.wall',
+        hashed_password=argon2.hash('password123')
+    )
+    await user_repo.commit_me(user)
+
+    response = client.post('/users/sign_in/', json={
+        'email': 'lord_commander@north.wall',
+        'password': 'password123'
+    })
+
+    assert response.status_code == 200
+    data = response.json()
+    assert 'access_token' in data
+
+
+@pytest.mark.asyncio
+async def test_user_sign_in_invalid_password(
+    user_repo: UserRepository,
+    client: TestClient
+):
+    user = user_repo.create_user_with_hashed_password(
+        username='john_snow',
+        first_name='John',
+        last_name='Snow',
+        email='lord_commander@north.wall',
+        hashed_password=argon2.hash('password123')
+    )
+    await user_repo.commit_me(user)
+
+    response = client.post('/users/sign_in/', json={
+        'email': 'lord_commander@north.wall',
+        'password': 'password1234'
+    })
+
     assert response.status_code == 401
