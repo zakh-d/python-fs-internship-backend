@@ -15,7 +15,11 @@ def test_get_user_list(client: TestClient, fake_authentication):
     assert type(data["users"]) is list
 
 
-def test_user_create_success(client: TestClient):
+@pytest.mark.asyncio
+async def test_user_create_success(
+        client: TestClient,
+        user_repo: UserRepository
+):
     user_dict = {
         "username": "drogo",
         "password": "stringst",
@@ -30,10 +34,8 @@ def test_user_create_success(client: TestClient):
     data = response.json()
     assert "id" in data
 
-    response = client.get('/users')
-    assert response.status_code == 200
-    data = response.json()
-    assert len(data['users']) == 1
+    users = await user_repo.get_all_users()
+    assert len(users) == 1
 
 
 def test_user_create_passwords_min_length(client: TestClient):
