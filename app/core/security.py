@@ -10,22 +10,22 @@ security = HTTPBearer()
 
 
 def get_token_from_header(authorization: HTTPAuthorizationCredentials = Depends(security)) -> str:
-    if authorization.scheme.lower() != "bearer":
+    if authorization.scheme.lower() != 'bearer':
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
+            detail='Not authenticated',
         )
     return authorization.credentials
 
 
 async def get_current_user(
-        token: Annotated[str, Depends(get_token_from_header)],
-        auth_service: Annotated[AuthenticationService, Depends(AuthenticationService)]
-        ) -> UserDetail:
+    token: Annotated[str, Depends(get_token_from_header)],
+    auth_service: Annotated[AuthenticationService, Depends(AuthenticationService)],
+) -> UserDetail:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
+        detail='Could not validate credentials',
+        headers={'WWW-Authenticate': 'Bearer'},
     )
     user = await auth_service.get_user_by_token(token)
 

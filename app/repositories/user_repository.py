@@ -26,12 +26,9 @@ class UserRepository:
         results = await self.db.execute(select(User).where(User.email == email))
         return results.scalars().first()
 
-    def create_user_with_hashed_password(self,
-                                         username: str,
-                                         first_name: Union[str, None],
-                                         last_name: Union[str, None],
-                                         email: str,
-                                         hashed_password: str) -> User:
+    def create_user_with_hashed_password(
+        self, username: str, first_name: Union[str, None], last_name: Union[str, None], email: str, hashed_password: str
+    ) -> User:
         user = User()
         user.username = username
         user.first_name = first_name
@@ -46,11 +43,7 @@ class UserRepository:
         user = await self.get_user_by_email(email)
         if user is None:
             user = self.create_user_with_hashed_password(
-                email.split('@')[0],
-                None,
-                None,
-                email,
-                str(secrets.token_hex(100))
+                email.split('@')[0], None, None, email, str(secrets.token_hex(100))
             )
             await self.commit_me(user)
         return user

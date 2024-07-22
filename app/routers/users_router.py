@@ -13,7 +13,7 @@ router = APIRouter()
 @router.get('/', response_model=UserList)
 async def read_users(
     user_service: Annotated[UserService, Depends(UserService)],
-    _: Annotated[UserSchema, Depends(get_current_user)]  # requires authentication
+    _: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
 ) -> UserList:
     return await user_service.get_all_users()
 
@@ -29,7 +29,7 @@ async def user_sign_up(
 async def read_user(
     user_id: UUID,
     user_service: Annotated[UserService, Depends(UserService)],
-    _: Annotated[UserSchema, Depends(get_current_user)]  # requires authentication
+    _: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
 ) -> UserDetail:
     return await user_service.get_user_by_id(user_id)
 
@@ -39,7 +39,7 @@ async def update_user(
     user_id: UUID,
     user: UserUpdateSchema,
     user_service: Annotated[UserService, Depends(UserService)],
-    _: Annotated[UserSchema, Depends(get_current_user)]  # requires authentication
+    _: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
 ) -> UserDetail:
     return await user_service.update_user(user_id, user)
 
@@ -48,6 +48,6 @@ async def update_user(
 async def delete_user(
     user_id: UUID,
     user_service: Annotated[UserService, Depends(UserService)],
-    current_user: Annotated[UserSchema, Depends(get_current_user)]  # requires authentication
+    current_user: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
 ) -> None:
     await user_service.delete_user(user_id)

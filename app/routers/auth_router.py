@@ -10,16 +10,15 @@ from app.services.authentication_service import AuthenticationService
 router = APIRouter()
 
 
-@router.post("/sign_in")
+@router.post('/sign_in')
 async def sign_in(
-    user_sign_in: UserSignInSchema,
-    auth_service: Annotated[AuthenticationService, Depends(AuthenticationService)]
+    user_sign_in: UserSignInSchema, auth_service: Annotated[AuthenticationService, Depends(AuthenticationService)]
 ) -> dict[str, str]:
     user = await auth_service.authenticate(user_sign_in)
     if user is None:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail='Invalid credentials')
     token = AuthenticationService.generate_jwt_token(user)
-    return {"access_token": token}
+    return {'access_token': token}
 
 
 @router.get('/me')
