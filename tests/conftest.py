@@ -4,6 +4,7 @@ from alembic.config import Config
 from fastapi.testclient import TestClient
 from typing import Generator
 
+from app.core.security import get_current_user
 from app.main import app
 from app.db.db import async_session
 from app.repositories import UserRepository
@@ -38,3 +39,8 @@ def user_repo(get_db):
 @pytest.fixture
 def user_service(user_repo):
     return UserService(user_repo)
+
+
+@pytest.fixture
+def fake_authentication():
+    app.dependency_overrides[get_current_user] = lambda: 1

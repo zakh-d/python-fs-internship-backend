@@ -22,7 +22,7 @@ class UserSignInSchema(BaseModel):
 
 
 class UserSignUpSchema(UserSignInSchema):
-    email: Annotated[EmailStr, Field(max_length=49)]
+    username: Annotated[str, Field(min_length=3, max_length=49)]
     first_name: Annotated[str, Field(max_length=49)]
     last_name: Annotated[str, Field(max_length=49)]
     password: Annotated[str, Field(min_length=8, max_length=255)]

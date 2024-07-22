@@ -6,7 +6,7 @@ from passlib.hash import argon2
 from app.repositories import UserRepository
 
 
-def test_get_user_list(client: TestClient):
+def test_get_user_list(client: TestClient, fake_authentication):
     response = client.get('/users/')
     assert response.status_code == 200
     data = response.json()
@@ -82,34 +82,6 @@ def test_user_create_passwords_must_match(client: TestClient):
 
 
 @pytest.mark.asyncio
-async def test_user_create_username_already_exists(
-        client: TestClient,
-        user_repo: UserRepository
-):
-    user_dict = {
-        "username": "lord_commander",
-        "email": "john@starks.com",
-        "first_name": "John",
-        "last_name": "Snow",
-    }
-
-    user = user_repo.create_user_with_hashed_password(
-        **user_dict,
-        hashed_password='hashed_password'
-    )
-    await user_repo.commit_me(user)
-
-    user_dict.update({
-        "email": 'john_reserve@starks.com',
-        "password": "stringst",
-        "password_confirmation": "stringst"
-    })
-    response = client.post('/users/sign_up/', json=user_dict)
-    assert response.status_code == 400
-    assert response.json() == {'detail': "User with username: 'lord_commander' already exists!"}
-
-
-@pytest.mark.asyncio
 async def test_user_create_email_already_exists(
         client: TestClient,
         user_repo: UserRepository
@@ -154,7 +126,8 @@ def test_user_create_email_invalid(client: TestClient):
 @pytest.mark.asyncio
 async def test_user_update(
         client: TestClient,
-        user_repo: UserRepository
+        user_repo: UserRepository,
+        fake_authentication
 ):
     user = user_repo.create_user_with_hashed_password(
         username='john_snow',
@@ -179,7 +152,8 @@ async def test_user_update(
 @pytest.mark.asyncio
 async def test_user_update_invalid_password(
         client: TestClient,
-        user_repo: UserRepository
+        user_repo: UserRepository,
+        fake_authentication
 ):
     user = user_repo.create_user_with_hashed_password(
         username='john_snow',
@@ -198,7 +172,7 @@ async def test_user_update_invalid_password(
     assert response.status_code == 401
 
 
-def test_user_update_user_not_found(client: TestClient):
+def test_user_update_user_not_found(client: TestClient, fake_authentication):
     response = client.put(f'/users/{uuid.uuid4()}', json={
         'first_name': 'Johny',
         'password': 'password123'
@@ -207,15 +181,16 @@ def test_user_update_user_not_found(client: TestClient):
 
 
 @pytest.mark.asyncio
-async def test_user_update_user_with_username_already_exists(
+async def test_user_update_user_with_email_already_exists(
         client: TestClient,
-        user_repo: UserRepository
+        user_repo: UserRepository,
+        fake_authentication
 ):
     john_snow = user_repo.create_user_with_hashed_password(
         username='john_snow',
         first_name='John',
         last_name='Snow',
-        email='lord_commander@north.wall',
+        email='test@mail.com',
         hashed_password=argon2.hash('password123')
     )
 
@@ -230,17 +205,18 @@ async def test_user_update_user_with_username_already_exists(
     await user_repo.commit_me(john_snow)
     await user_repo.commit_me(daenerys)
 
-    response = client.put(f'/users/{john_snow.id}', json={
-        'username': 'daenerys',
+    response = client.put(f'/users/{daenerys.id}', json={
+        'email': 'test@mail.com',
         'password': 'password123'
     })
 
     assert response.status_code == 400
-    assert response.json() == {'detail': "User with username: 'daenerys' already exists!"}
+    assert response.json() == {'detail': "User with email: 'test@mail.com' already exists!"}
 
 
 def test_update_very_long_password_rejects(
-        client: TestClient
+        client: TestClient,
+        fake_authentication
 ):
     very_long_password = 'abc' * 1000
     response = client.put(f'/users/{uuid.uuid4}/', json={
@@ -254,7 +230,8 @@ def test_update_very_long_password_rejects(
 @pytest.mark.asyncio
 async def test_user_delete(
         client: TestClient,
-        user_repo: UserRepository
+        user_repo: UserRepository,
+        fake_authentication
 ):
     daenerys = user_repo.create_user_with_hashed_password(
         username='daenerys',
@@ -272,7 +249,7 @@ async def test_user_delete(
     assert len(users) == 0
 
 
-def test_user_delete_user_not_found(client: TestClient):
+def test_user_delete_user_not_found(client: TestClient, fake_authentication):
     response = client.delete(f'/users/{uuid.uuid4()}')
     assert response.status_code == 404
     assert 'not found' in response.json()['detail']

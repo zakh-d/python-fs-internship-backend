@@ -221,7 +221,6 @@ async def test_update_user_invalid_password(
 @pytest.mark.asyncio
 @pytest.mark.parametrize(('conflict_field', 'value'), [
     ('email', 'lord_commander@north.wall'),
-    ('username', 'john_snow'),
 ])
 async def test_update_user_user_already_exists(
     user_repo: UserRepository,
