@@ -62,9 +62,7 @@ class AuthenticationService:
             return user
 
         user_email = self._get_email_form_auth0_token(token)
-        print('Extracting email from token')
         if user_email is not None:
-            print('Email extracted')
             user = await self.user_repository.get_user_by_email_or_create(user_email)
             return user
         return None
