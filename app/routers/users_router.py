@@ -27,6 +27,14 @@ async def user_sign_up(
     return await user_service.create_user(user)
 
 
+@router.get('/me', response_model=UserDetail)
+async def read_me(
+    user_service: Annotated[UserService, Depends(UserService)],
+    current_user: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
+) -> UserDetail:
+    return await user_service.get_user_by_id(current_user.id)
+
+
 @router.get('/{user_id}', response_model=UserDetail)
 async def read_user(
     user_id: UUID,
@@ -34,14 +42,6 @@ async def read_user(
     _: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
 ) -> UserDetail:
     return await user_service.get_user_by_id(user_id)
-
-
-@router.get('/me', response_model=UserDetail)
-async def read_me(
-    user_service: Annotated[UserService, Depends(UserService)],
-    current_user: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
-) -> UserDetail:
-    return await user_service.get_user_by_id(current_user.id)
 
 
 @router.put('/me', response_model=UserDetail)

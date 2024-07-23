@@ -294,3 +294,34 @@ async def test_user_sign_in_invalid_password(
     })
 
     assert response.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_get_me(
+    client: TestClient,
+    user_repo: UserRepository
+):
+    user = user_repo.create_user_with_hashed_password(
+        username='john_snow',
+        first_name='John',
+        last_name='Snow',
+        email='lord_commander@north.wall',
+        hashed_password=argon2.hash('password123')
+    )
+
+    await user_repo.commit_me(user)
+
+    auth_service = AuthenticationService(user_repo)
+    access_token = auth_service.generate_jwt_token(UserSchema.model_validate(user))
+
+    response = client.get('/users/me', headers={
+        'Authorization': f'Bearer {access_token}'
+    })
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data['email'] == 'lord_commander@north.wall'
+    assert data['username'] == 'john_snow'
+    assert data['first_name'] == 'John'
+    assert data['last_name'] == 'Snow'
+    assert 'hashed_password' not in data
