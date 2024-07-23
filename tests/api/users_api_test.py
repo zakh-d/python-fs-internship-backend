@@ -1,3 +1,4 @@
+from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 from passlib.hash import argon2
@@ -143,7 +144,7 @@ async def test_user_update(
     auth_service = AuthenticationService(user_repo)
     access_token = auth_service.generate_jwt_token(UserSchema.model_validate(user))
 
-    response = client.put('/users/me', json={
+    response = client.put(f'/users/{user.id}', json={
         'first_name': 'Johny',
     }, headers={
         'Authorization': f'Bearer {access_token}'
@@ -154,8 +155,40 @@ async def test_user_update(
     assert data['first_name'] == 'Johny'
 
 
+def test_user_update_requires_authorization(client: TestClient):
+    response = client.put(f'/users/{uuid4()}', json={
+        'first_name': 'Robert',
+    })
+    assert response.status_code == 401
+
+
 @pytest.mark.asyncio
-async def test_user_cannot_update_password_without_credetials(
+async def test_can_only_update_itself(
+        client: TestClient,
+        user_repo: UserRepository
+):
+    user = user_repo.create_user_with_hashed_password(
+        username='john_snow',
+        first_name='John',
+        last_name='Snow',
+        email='lord_commander@north.wall',
+        hashed_password=argon2.hash('password123')
+    )
+    await user_repo.commit_me(user)
+
+    auth_service = AuthenticationService(user_repo)
+    access_token = auth_service.generate_jwt_token(UserSchema.model_validate(user))
+    response = client.put(f'/users/{uuid4()}', json={
+        'first_name': 'Robert',
+    }, headers={
+        'Authorization': f'Bearer {access_token}'
+    })
+
+    assert response.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_user_cannot_set_new_password_without_old_one(
         client: TestClient,
         user_repo: UserRepository,
 ):
@@ -171,7 +204,7 @@ async def test_user_cannot_update_password_without_credetials(
     auth_service = AuthenticationService(user_repo)
     access_token = auth_service.generate_jwt_token(UserSchema.model_validate(user))
 
-    response = client.put('/users/me', json={
+    response = client.put(f'/users/{user.id}', json={
         'new_password': 'testpass123'
     }, headers={
         'Authorization': f'Bearer {access_token}'
@@ -196,7 +229,7 @@ async def test_user_update_invalid_password(
     auth_service = AuthenticationService(user_repo)
     access_token = auth_service.generate_jwt_token(UserSchema.model_validate(user))
 
-    response = client.put('/users/me', json={
+    response = client.put(f'/users/{user.id}', json={
         'new_password': 'password1234',
         'password': 'password1234'
     }, headers={
@@ -211,7 +244,7 @@ def test_update_very_long_password_rejects(
         fake_authentication: None
 ):
     very_long_password = 'abc' * 1000
-    response = client.put('/users/me', json={
+    response = client.put(f'/users/{uuid4()}', json={
         'first_name': 'Robert',
         'password': very_long_password
     })
@@ -236,7 +269,7 @@ async def test_user_delete(
     auth_service = AuthenticationService(user_repo)
     access_token = auth_service.generate_jwt_token(UserSchema.model_validate(user))
 
-    response = client.delete('/users/me', headers={'Authorization': f'Bearer {access_token}'})
+    response = client.delete(f'/users/{user.id}', headers={'Authorization': f'Bearer {access_token}'})
     assert response.status_code == 200
 
     users = await user_repo.get_all_users()
@@ -246,7 +279,7 @@ async def test_user_delete(
 def test_user_delete_unauthorized_401(
         client: TestClient
 ):
-    response = client.delete('/users/me')
+    response = client.delete(f'/users/{uuid4()}')
     assert response.status_code == 401
 
 

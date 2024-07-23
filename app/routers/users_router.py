@@ -8,6 +8,7 @@ from app.schemas.user_shema import (
     UserDetail, UserList, UserSchema, UserSignInSchema, UserSignUpSchema, UserUpdateSchema)
 from app.services import UserService
 from app.services.authentication_service.service import AuthenticationService
+from app.utils.permissions import only_user_itself
 
 router = APIRouter()
 
@@ -44,21 +45,25 @@ async def read_user(
     return await user_service.get_user_by_id(user_id)
 
 
-@router.put('/me', response_model=UserDetail)
-async def update_me(
+@router.put('/{user_id}', response_model=UserDetail)
+@only_user_itself
+async def update_user(
+    user_id: UUID,
+    current_user: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
     user: UserUpdateSchema,
     user_service: Annotated[UserService, Depends(UserService)],
-    current_user: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
 ) -> UserDetail:
-    return await user_service.update_user(current_user.id, user)
+    return await user_service.update_user(user_id, user)
 
 
-@router.delete('/me')
-async def delete_me(
-    user_service: Annotated[UserService, Depends(UserService)],
+@router.delete('/{user_id}')
+@only_user_itself
+async def delete_user(
+    user_id: UUID,
     current_user: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
+    user_service: Annotated[UserService, Depends(UserService)],
 ) -> None:
-    await user_service.delete_user(current_user.id)
+    await user_service.delete_user(user_id)
 
 
 @router.post('/sign_in')
