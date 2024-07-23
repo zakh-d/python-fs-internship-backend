@@ -77,6 +77,10 @@ ignore = [
     "ANN101", # annotation for self
     "ANN102", # annotation for cls
     "ANN204", # missing return tupe from __init__
+    "B904", # raise ... from err 
+    "ANN401", # any is disallowed
+    
+
 ]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
