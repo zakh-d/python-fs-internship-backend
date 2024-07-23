@@ -1,10 +1,10 @@
 from typing import Annotated, Union
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.schemas.user_shema import UserDetail
 from app.services.authentication_service.service import AuthenticationService
-
 
 security = HTTPBearer(auto_error=False)
 

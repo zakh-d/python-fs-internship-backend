@@ -1,9 +1,11 @@
-from uuid import UUID
-from fastapi import Depends
-import jwt
+import secrets
 from datetime import datetime, timedelta, timezone
-from passlib.hash import argon2
 from typing import Annotated, Union
+from uuid import UUID
+
+import jwt
+from fastapi import Depends
+from passlib.hash import argon2
 
 from app.core.config import settings
 from app.repositories.user_repository import UserRepository
@@ -62,9 +64,15 @@ class AuthenticationService:
             return user
 
         user_email = self._get_email_form_auth0_token(token)
-        print('Extracting email from token')
         if user_email is not None:
-            print('Email extracted')
-            user = await self.user_repository.get_user_by_email_or_create(user_email)
+
+            user = await self.user_repository.get_user_by_email(user_email)
+            if user is not None:
+                return user
+
+            user = self.user_repository.create_user_with_hashed_password(
+                user_email.split('@')[0], None, None, user_email, str(secrets.token_hex(100))
+            )
+            await self.user_repository.commit_me(user)
             return user
         return None
