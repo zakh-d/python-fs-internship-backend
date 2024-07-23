@@ -10,7 +10,8 @@ security = HTTPBearer(auto_error=False)
 
 
 def get_token_from_header(
-        authorization: Annotated[Union[HTTPAuthorizationCredentials, None], Depends(security)]) -> str:
+    authorization: Annotated[Union[HTTPAuthorizationCredentials, None], Depends(security)],
+) -> str:
     if authorization is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

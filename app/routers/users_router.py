@@ -5,7 +5,13 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.security import get_current_user
 from app.schemas.user_shema import (
-    UserDetail, UserList, UserSchema, UserSignInSchema, UserSignUpSchema, UserUpdateSchema)
+    UserDetail,
+    UserList,
+    UserSchema,
+    UserSignInSchema,
+    UserSignUpSchema,
+    UserUpdateSchema,
+)
 from app.services import UserService
 from app.services.authentication_service.service import AuthenticationService
 from app.utils.permissions import only_user_itself

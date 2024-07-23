@@ -65,7 +65,6 @@ class AuthenticationService:
 
         user_email = self._get_email_form_auth0_token(token)
         if user_email is not None:
-
             user = await self.user_repository.get_user_by_email(user_email)
             if user is not None:
                 return user
