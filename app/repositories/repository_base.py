@@ -1,7 +1,8 @@
 from typing import Annotated, TypeVar
 from uuid import UUID
+
 from fastapi import Depends
-from sqlalchemy import select, delete
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db

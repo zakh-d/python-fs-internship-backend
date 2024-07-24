@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import ClassVar
 from uuid import UUID, uuid4
 
-from sqlalchemy import TIMESTAMP, String, Uuid, Boolean, ForeignKey
+from sqlalchemy import TIMESTAMP, Boolean, ForeignKey, String, Uuid
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import Mapped, declarative_base, mapped_column, relationship
 

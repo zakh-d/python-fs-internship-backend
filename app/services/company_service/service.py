@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import Depends
 
 from app.repositories.company_repository import CompanyRepository
-from app.schemas.company_schema import CompanySchema, CompanyListSchema, CompanyCreateSchema
+from app.schemas.company_schema import CompanyCreateSchema, CompanyListSchema, CompanySchema
 from app.schemas.user_shema import UserDetail
 
 

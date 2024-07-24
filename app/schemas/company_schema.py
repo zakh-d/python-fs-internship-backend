@@ -1,5 +1,6 @@
 from typing import Annotated
 from uuid import UUID
+
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.user_shema import UserSchema
