@@ -2,9 +2,11 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from app.db.models import Company
 from app.repositories.company_repository import CompanyRepository
 from app.schemas.company_schema import CompanyCreateSchema, CompanyListSchema, CompanySchema
 from app.schemas.user_shema import UserDetail
+from .exceptions import CompanyPermissionException, CompanyNotFoundException
 
 
 class CompanyService:
@@ -25,3 +27,17 @@ class CompanyService:
     async def create_company(self, company_data: CompanyCreateSchema, current_user: UserDetail) -> CompanySchema:
         company = await self.company_repository.create_company(company_data, current_user.id)
         return CompanySchema.model_validate(company)
+
+    async def update_company(self, company_id: str,
+                             company_data: CompanyCreateSchema, current_user: UserDetail) -> CompanySchema:
+        company = await self.company_repository.get_company_by_id(company_id)
+        if not company:
+            raise CompanyNotFoundException(company_id)
+        if not self.user_has_edit_permission(company, current_user):
+            raise CompanyPermissionException()
+        company = await self.company_repository.update_company(company, company_data)
+        return CompanySchema.model_validate(company)
+
+    def user_has_edit_permission(self, company: Company, current_user: UserDetail) -> bool:
+        # possible place for future is_admin check
+        return company.owner_id == current_user.id

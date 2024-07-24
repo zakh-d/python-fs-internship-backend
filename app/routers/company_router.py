@@ -35,3 +35,13 @@ async def create_company(
     company_service: Annotated[CompanyService, Depends(CompanyService)]
 ) -> CompanySchema:
     return await company_service.create_company(company_data, current_user)
+
+
+@router.put("/{company_id}")
+async def update_company(
+    company_id: UUID,
+    company_data: CompanyCreateSchema,
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+    company_service: Annotated[CompanyService, Depends(CompanyService)]
+) -> CompanySchema:
+    return await company_service.update_company(company_id, company_data, current_user)

@@ -3,7 +3,7 @@ from uuid import UUID
 
 from app.db.models import Company
 from app.repositories.repository_base import RepositoryBase
-from app.schemas.company_schema import CompanyCreateSchema
+from app.schemas.company_schema import CompanyCreateSchema, CompanyUpdateSchema
 
 
 class CompanyRepository(RepositoryBase):
@@ -21,9 +21,18 @@ class CompanyRepository(RepositoryBase):
         company = Company(
             name=company_data.name,
             description=company_data.description,
-            owner_id=owner_id
+            owner_id=owner_id,
+            hidden=company_data.hidden
         )
         self.db.add(company)
+        await self.db.commit()
+        await self.db.refresh(company)
+        return company
+
+    async def update_company(self, company: Company, company_data: CompanyUpdateSchema) -> Company:
+        new_data = company_data.model_dump(exclude_none=True)
+        for field, value in new_data.items():
+            setattr(company, field, value)
         await self.db.commit()
         await self.db.refresh(company)
         return company
