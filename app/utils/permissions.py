@@ -1,9 +1,9 @@
 from functools import wraps
 from typing import Callable, TypeVar
-from typing_extensions import ParamSpec
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from typing_extensions import ParamSpec
 
 from app.schemas.user_shema import UserDetail
 
