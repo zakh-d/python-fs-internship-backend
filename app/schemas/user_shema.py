@@ -1,9 +1,9 @@
 from datetime import datetime
-from typing import Annotated, Optional
-from typing_extensions import Self
+from typing import Annotated, Optional, Union
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
+from typing_extensions import Self
 
 
 class UserSchema(BaseModel):
@@ -17,12 +17,12 @@ class UserSchema(BaseModel):
 
 
 class UserSignInSchema(BaseModel):
-    username: str
+    email: Annotated[EmailStr, Field(max_length=49)]
     password: Annotated[str, Field(max_length=255)]
 
 
 class UserSignUpSchema(UserSignInSchema):
-    email: Annotated[EmailStr, Field(max_length=49)]
+    username: Annotated[str, Field(min_length=3, max_length=49)]
     first_name: Annotated[str, Field(max_length=49)]
     last_name: Annotated[str, Field(max_length=49)]
     password: Annotated[str, Field(min_length=8, max_length=255)]
@@ -46,8 +46,8 @@ class UserUpdateSchema(BaseModel):
 
 
 class UserDetail(UserSchema):
-    first_name: Annotated[str, Field(max_length=49)]
-    last_name: Annotated[str, Field(max_length=49)]
+    first_name: Union[Annotated[str, Field(max_length=49)], None]
+    last_name: Union[Annotated[str, Field(max_length=49)], None]
 
 
 class UserList(BaseModel):

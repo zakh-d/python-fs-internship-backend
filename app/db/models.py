@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import ClassVar
 from uuid import UUID, uuid4
 
 from sqlalchemy import TIMESTAMP, String, Uuid
@@ -13,7 +14,7 @@ class ModelBase(AsyncAttrs, Base):
 
     __abstract__ = True
 
-    type_annotation_map = {
+    type_annotation_map: ClassVar[dict] = {
         datetime: TIMESTAMP(timezone=True),
         UUID: Uuid,
         str: String,
@@ -27,7 +28,7 @@ class ModelBase(AsyncAttrs, Base):
 class User(ModelBase):
     __tablename__ = 'users'
 
-    username: Mapped[str] = mapped_column(String(50), index=True, unique=True)
+    username: Mapped[str] = mapped_column(String(50), index=True)
     first_name: Mapped[str] = mapped_column(String(50), nullable=True)
     last_name: Mapped[str] = mapped_column(String(50), nullable=True)
     # email index is useful for searching users by email when using jwt
