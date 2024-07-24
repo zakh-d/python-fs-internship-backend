@@ -28,7 +28,7 @@ class ModelBase(AsyncAttrs, Base):
 class User(ModelBase):
     __tablename__ = 'users'
 
-    username: Mapped[str] = mapped_column(String(50), index=True, unique=True)
+    username: Mapped[str] = mapped_column(String(50), index=True)
     first_name: Mapped[str] = mapped_column(String(50), nullable=True)
     last_name: Mapped[str] = mapped_column(String(50), nullable=True)
     # email index is useful for searching users by email when using jwt

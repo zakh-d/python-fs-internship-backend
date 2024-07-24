@@ -56,5 +56,12 @@ class Settings(BaseSettings):
 
     ENVIRONMENT: Literal['local', 'staging', 'production'] = 'local'
 
+    JWT_SECRET: str
+    JWT_EXPIRATION_MINUTES: int = 60
+
+    AUTH0_SIGNING_SECRET: str
+    AUTH0_EMAIL_NAME_IN_TOKEN: str
+    AUTH0_AUDIENCE: str
+
 
 settings = Settings()

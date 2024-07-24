@@ -3,6 +3,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
+from app.core.security import get_current_user
 from app.schemas.user_shema import UserDetail, UserList, UserSchema, UserSignUpSchema, UserUpdateSchema
 from app.services import UserService
 
@@ -10,7 +11,10 @@ router = APIRouter()
 
 
 @router.get('/', response_model=UserList)
-async def read_users(user_service: Annotated[UserService, Depends(UserService)]) -> UserList:
+async def read_users(
+    user_service: Annotated[UserService, Depends(UserService)],
+    _: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
+) -> UserList:
     return await user_service.get_all_users()
 
 
@@ -22,17 +26,28 @@ async def user_sign_up(
 
 
 @router.get('/{user_id}', response_model=UserDetail)
-async def read_user(user_id: UUID, user_service: Annotated[UserService, Depends(UserService)]) -> UserDetail:
+async def read_user(
+    user_id: UUID,
+    user_service: Annotated[UserService, Depends(UserService)],
+    _: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
+) -> UserDetail:
     return await user_service.get_user_by_id(user_id)
 
 
 @router.put('/{user_id}', response_model=UserDetail)
 async def update_user(
-    user_id: UUID, user: UserUpdateSchema, user_service: Annotated[UserService, Depends(UserService)]
+    user_id: UUID,
+    user: UserUpdateSchema,
+    user_service: Annotated[UserService, Depends(UserService)],
+    _: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
 ) -> UserDetail:
     return await user_service.update_user(user_id, user)
 
 
 @router.delete('/{user_id}')
-async def delete_user(user_id: UUID, user_service: Annotated[UserService, Depends(UserService)]) -> None:
+async def delete_user(
+    user_id: UUID,
+    user_service: Annotated[UserService, Depends(UserService)],
+    current_user: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
+) -> None:
     await user_service.delete_user(user_id)
