@@ -21,6 +21,7 @@ class CompanyRepository(RepositoryBase):
             description=company_data.description,
             owner_id=owner_id
         )
-        await self.db.commit(company)
+        self.db.add(company)
+        await self.db.commit()
         await self.db.refresh(company)
         return company

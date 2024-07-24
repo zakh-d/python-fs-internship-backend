@@ -1,5 +1,7 @@
 from typing import Annotated
 
+from fastapi import Depends
+
 from app.repositories.company_repository import CompanyRepository
 from app.schemas.company_schema import CompanySchema, CompanyListSchema, CompanyCreateSchema
 from app.schemas.user_shema import UserDetail
@@ -7,7 +9,7 @@ from app.schemas.user_shema import UserDetail
 
 class CompanyService:
 
-    def __init__(self, company_repository: Annotated[CompanyRepository, CompanyRepository]):
+    def __init__(self, company_repository: Annotated[CompanyRepository, Depends(CompanyRepository)]):
         self.company_repository = company_repository
 
     async def get_all_companies(self) -> CompanyListSchema:
