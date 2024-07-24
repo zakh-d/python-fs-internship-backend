@@ -1,5 +1,7 @@
+from uuid import UUID
 from app.db.models import Company
 from app.repositories.repository_base import RepositoryBase
+from app.schemas.company_schema import CompanyCreateSchema
 
 
 class CompanyRepository(RepositoryBase):
@@ -12,3 +14,13 @@ class CompanyRepository(RepositoryBase):
 
     async def delete_company_by_id(self, company_id):
         await self._delete_item(company_id, Company)
+
+    async def create_company(self, company_data: CompanyCreateSchema, owner_id: UUID):
+        company = Company(
+            name=company_data.name,
+            description=company_data.description,
+            owner_id=owner_id
+        )
+        await self.db.commit(company)
+        await self.db.refresh(company)
+        return company
