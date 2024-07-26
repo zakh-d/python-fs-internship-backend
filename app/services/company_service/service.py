@@ -17,6 +17,8 @@ class CompanyService:
     async def get_all_companies(self, page: int, limit: int) -> CompanyListSchema:
         offset = (page - 1) * limit
         companies = await self.company_repository.get_all_companies(offset, limit)
+        for company in companies:
+            company.owner = await company.awaitable_attrs.owner
         return CompanyListSchema(
             companies=[CompanySchema.model_validate(company) for company in companies],
             total_count=await self.company_repository.get_companies_count()
@@ -24,6 +26,9 @@ class CompanyService:
 
     async def get_company_by_id(self, company_id: str) -> CompanySchema:
         company = await self.company_repository.get_company_by_id(company_id)
+        if not company:
+            raise CompanyNotFoundException(company_id)
+        company.owner = await company.awaitable_attrs.owner
         return CompanySchema.model_validate(company)
 
     async def create_company(self, company_data: CompanyCreateSchema, current_user: UserDetail) -> CompanySchema:
@@ -42,4 +47,8 @@ class CompanyService:
 
     def user_has_edit_permission(self, company: Company, current_user: UserDetail) -> bool:
         # possible place for future is_admin check
+        return company.owner_id == current_user.id
+
+    def user_has_delete_permission(self, company: Company, current_user: UserDetail) -> bool:
+        # only admin can delete their company
         return company.owner_id == current_user.id

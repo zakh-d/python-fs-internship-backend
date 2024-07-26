@@ -36,7 +36,10 @@ class User(ModelBase):
     email: Mapped[str] = mapped_column(String(50), index=True, unique=True)
     hashed_password: Mapped[str] = mapped_column(String(256))
 
-    companies: Mapped[list['Company']] = relationship('Company', back_populates='owner')
+    companies: Mapped[list['Company']] = relationship('Company',
+                                                      back_populates='owner',
+                                                      cascade='all, delete-orphan',
+                                                      passive_deletes=True)
 
     def __repr__(self) -> str:
         return f'<User {self.username}>'
@@ -48,6 +51,6 @@ class Company(ModelBase):
     name: Mapped[str] = mapped_column(String(50), index=True)
     description: Mapped[str] = mapped_column(String(250), nullable=True)
     hidden: Mapped[bool] = mapped_column(Boolean, default=True)
-    owner_id: Mapped[UUID] = mapped_column(ForeignKey('users.id'))
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'))
 
     owner: Mapped[User] = relationship(back_populates='companies')
