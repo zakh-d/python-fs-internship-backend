@@ -58,3 +58,4 @@ class UserDetail(UserSchema):
 
 class UserList(BaseModel):
     users: list[UserSchema] = []
+    total_count: int

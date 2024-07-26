@@ -18,6 +18,7 @@ class CompanySchema(BaseModel):
 
 class CompanyListSchema(BaseModel):
     companies: list[CompanySchema]
+    total_count: int
 
 
 class CompanyCreateSchema(BaseModel):

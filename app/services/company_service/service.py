@@ -18,7 +18,8 @@ class CompanyService:
         offset = (page - 1) * limit
         companies = await self.company_repository.get_all_companies(offset, limit)
         return CompanyListSchema(
-            companies=[CompanySchema.model_validate(company) for company in companies]
+            companies=[CompanySchema.model_validate(company) for company in companies],
+            total_count=await self.company_repository.get_companies_count()
         )
 
     async def get_company_by_id(self, company_id: str) -> CompanySchema:
