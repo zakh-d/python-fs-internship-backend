@@ -23,8 +23,10 @@ router = APIRouter()
 async def read_users(
     user_service: Annotated[UserService, Depends(UserService)],
     _: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
+    page: int = 1,
+    limit: int = 10,
 ) -> UserList:
-    return await user_service.get_all_users()
+    return await user_service.get_all_users(page, limit)
 
 
 @router.post('/', response_model=UserSchema)

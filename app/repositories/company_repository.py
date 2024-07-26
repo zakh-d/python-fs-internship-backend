@@ -8,8 +8,8 @@ from app.schemas.company_schema import CompanyCreateSchema, CompanyUpdateSchema
 
 class CompanyRepository(RepositoryBase):
 
-    async def get_all_companies(self) -> list[Company]:
-        return await self._get_all_items(Company)
+    async def get_all_companies(self, offset: int, limit: int) -> list[Company]:
+        return await self._get_all_items(offset, limit, Company)
 
     async def get_company_by_id(self, company_id: UUID) -> Union[Company, None]:
         return await self._get_item_by_id(company_id, Company)

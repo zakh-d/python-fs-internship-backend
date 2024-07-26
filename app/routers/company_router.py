@@ -14,9 +14,11 @@ router = APIRouter()
 @router.get("/")
 async def get_companies(
     company_service: Annotated[CompanyService, Depends(CompanyService)],
-    _: Annotated[UserDetail, Depends(get_current_user)]  # requires authentication
+    _: Annotated[UserDetail, Depends(get_current_user)],  # requires authentication
+    page: int = 1,
+    limit: int = 10,
 ) -> CompanyListSchema:
-    return await company_service.get_all_companies()
+    return await company_service.get_all_companies(page, limit)
 
 
 @router.get("/{company_id}")

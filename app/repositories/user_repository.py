@@ -9,8 +9,8 @@ from app.repositories.repository_base import RepositoryBase
 
 class UserRepository(RepositoryBase):
 
-    async def get_all_users(self) -> list[User]:
-        return await self._get_all_items(User)
+    async def get_all_users(self, offset: int, limit: int) -> list[User]:
+        return await self._get_all_items(offset, limit, User)
 
     async def get_user_by_id(self, user_id: UUID) -> User:
         return await self._get_item_by_id(user_id, User)

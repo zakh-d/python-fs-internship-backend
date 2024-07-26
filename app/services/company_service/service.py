@@ -14,8 +14,9 @@ class CompanyService:
     def __init__(self, company_repository: Annotated[CompanyRepository, Depends(CompanyRepository)]):
         self.company_repository = company_repository
 
-    async def get_all_companies(self) -> CompanyListSchema:
-        companies = await self.company_repository.get_all_companies()
+    async def get_all_companies(self, page: int, limit: int) -> CompanyListSchema:
+        offset = (page - 1) * limit
+        companies = await self.company_repository.get_all_companies(offset, limit)
         return CompanyListSchema(
             companies=[CompanySchema.model_validate(company) for company in companies]
         )
