@@ -91,8 +91,7 @@ async def test_update_company_endpoint(
     })
 
     assert response.status_code == 200
-
-    company = await company_repo.get_company_by_id(company.id)
+    await company_repo.db.refresh(company)
     assert company.name == 'Test1'
 
 
@@ -129,7 +128,7 @@ async def test_not_owner_cannot_edit_company(
 
     assert response.status_code == 403
 
-    company = await company_repo.get_company_by_id(company.id)
+    company_repo.db.refresh(company)
     assert company.name == 'Company1'
 
 
