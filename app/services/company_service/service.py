@@ -40,15 +40,23 @@ class CompanyService:
         company = await self.company_repository.get_company_by_id(company_id)
         if not company:
             raise CompanyNotFoundException(company_id)
-        if not self.user_has_edit_permission(company, current_user):
+        if not self._user_has_edit_permission(company, current_user):
             raise CompanyPermissionException()
         company = await self.company_repository.update_company(company, company_data)
         return CompanySchema.model_validate(company)
 
-    def user_has_edit_permission(self, company: Company, current_user: UserDetail) -> bool:
+    async def delete_company(self, company_id: str, current_user: UserDetail) -> None:
+        company = await self.company_repository.get_company_by_id(company_id)
+        if not company:
+            raise CompanyNotFoundException(company_id)
+        if not self._user_has_delete_permission(company, current_user):
+            raise CompanyPermissionException()
+        await self.company_repository.delete_company_by_id(company_id)
+
+    def _user_has_edit_permission(self, company: Company, current_user: UserDetail) -> bool:
         # possible place for future is_admin check
         return company.owner_id == current_user.id
 
-    def user_has_delete_permission(self, company: Company, current_user: UserDetail) -> bool:
+    def _user_has_delete_permission(self, company: Company, current_user: UserDetail) -> bool:
         # only admin can delete their company
         return company.owner_id == current_user.id

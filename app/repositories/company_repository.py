@@ -18,7 +18,8 @@ class CompanyRepository(RepositoryBase):
         return await self._get_item_by_id(company_id, Company)
 
     async def delete_company_by_id(self, company_id: UUID) -> None:
-        await self._delete_item(company_id, Company)
+        await self._delete_item_by_id(company_id, Company)
+        await self.db.commit()
 
     async def create_company(self, company_data: CompanyCreateSchema, owner_id: UUID) -> Company:
         company = Company(
