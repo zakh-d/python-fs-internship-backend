@@ -33,7 +33,7 @@ async def test_get_all_users(
     await user_repo.commit_me(john_snow)
     await user_repo.commit_me(daenerys)
 
-    users = await user_service.get_all_users()
+    users = await user_service.get_all_users(1, 10)
     assert len(users.users) == 2
 
 
@@ -235,9 +235,9 @@ async def test_delete_user(
 
     await user_service.delete_user(john_snow.id)
 
-    users = await user_repo.get_all_users()
+    users_count = await user_repo.get_users_count()
 
-    assert len(users) == 0
+    assert users_count == 0
 
 
 @pytest.mark.asyncio

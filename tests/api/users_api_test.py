@@ -35,8 +35,8 @@ async def test_user_create_success(
     data = response.json()
     assert "id" in data
 
-    users = await user_repo.get_all_users()
-    assert len(users) == 1
+    users_count = await user_repo.get_users_count()
+    assert users_count == 1
 
 
 def test_user_create_passwords_min_length(client: TestClient):
@@ -272,8 +272,8 @@ async def test_user_delete(
     response = client.delete(f'/users/{user.id}', headers={'Authorization': f'Bearer {access_token}'})
     assert response.status_code == 200
 
-    users = await user_repo.get_all_users()
-    assert len(users) == 0
+    users_count = await user_repo.get_users_count()
+    assert users_count == 0
 
 
 def test_user_delete_unauthorized_401(
