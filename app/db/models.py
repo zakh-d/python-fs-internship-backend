@@ -36,10 +36,9 @@ class User(ModelBase):
     email: Mapped[str] = mapped_column(String(50), index=True, unique=True)
     hashed_password: Mapped[str] = mapped_column(String(256))
 
-    companies: Mapped[list['Company']] = relationship('Company',
-                                                      back_populates='owner',
-                                                      cascade='all, delete-orphan',
-                                                      passive_deletes=True)
+    companies: Mapped[list['Company']] = relationship(
+        'Company', back_populates='owner', cascade='all, delete-orphan', passive_deletes=True
+    )
 
     def __repr__(self) -> str:
         return f'<User {self.username}>'

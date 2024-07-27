@@ -7,7 +7,6 @@ from app.schemas.user_shema import UserSchema
 
 
 class CompanySchema(BaseModel):
-
     id: UUID
     name: Annotated[str, Field(max_length=49)]
     description: Annotated[str, Field(max_length=249)]

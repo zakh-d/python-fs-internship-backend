@@ -2,7 +2,7 @@ from typing import Annotated, TypeVar
 from uuid import UUID
 
 from fastapi import Depends
-from sqlalchemy import delete, select, func
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
@@ -11,7 +11,6 @@ T = TypeVar('T')
 
 
 class RepositoryBase:
-
     def __init__(self, db: Annotated[AsyncSession, Depends(get_db)]):
         self.db = db
 

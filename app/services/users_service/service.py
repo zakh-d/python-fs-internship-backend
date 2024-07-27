@@ -25,7 +25,8 @@ class UserService:
         users = await self.user_repository.get_all_users(offset, limit)
         return UserList(
             users=[UserSchema.model_validate(user) for user in users],
-            total_count=await self.user_repository.get_users_count())
+            total_count=await self.user_repository.get_users_count(),
+        )
 
     async def create_user(self, user_data: UserSignUpSchema) -> UserSchema:
         hashed_password = argon2.hash(user_data.password)

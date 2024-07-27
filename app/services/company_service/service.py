@@ -6,11 +6,11 @@ from app.db.models import Company
 from app.repositories.company_repository import CompanyRepository
 from app.schemas.company_schema import CompanyCreateSchema, CompanyListSchema, CompanySchema
 from app.schemas.user_shema import UserDetail
-from .exceptions import CompanyPermissionException, CompanyNotFoundException
+
+from .exceptions import CompanyNotFoundException, CompanyPermissionException
 
 
 class CompanyService:
-
     def __init__(self, company_repository: Annotated[CompanyRepository, Depends(CompanyRepository)]):
         self.company_repository = company_repository
 
@@ -21,7 +21,7 @@ class CompanyService:
             company.owner = await company.awaitable_attrs.owner
         return CompanyListSchema(
             companies=[CompanySchema.model_validate(company) for company in companies],
-            total_count=await self.company_repository.get_companies_count()
+            total_count=await self.company_repository.get_companies_count(),
         )
 
     async def get_company_by_id(self, company_id: str) -> CompanySchema:
@@ -35,8 +35,9 @@ class CompanyService:
         company = await self.company_repository.create_company(company_data, current_user.id)
         return CompanySchema.model_validate(company)
 
-    async def update_company(self, company_id: str,
-                             company_data: CompanyCreateSchema, current_user: UserDetail) -> CompanySchema:
+    async def update_company(
+        self, company_id: str, company_data: CompanyCreateSchema, current_user: UserDetail
+    ) -> CompanySchema:
         company = await self.company_repository.get_company_by_id(company_id)
         if not company:
             raise CompanyNotFoundException(company_id)

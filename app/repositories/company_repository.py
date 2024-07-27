@@ -7,7 +7,6 @@ from app.schemas.company_schema import CompanyCreateSchema, CompanyUpdateSchema
 
 
 class CompanyRepository(RepositoryBase):
-
     async def get_all_companies(self, offset: int, limit: int) -> list[Company]:
         return await self._get_all_items(offset, limit, Company)
 
@@ -23,10 +22,7 @@ class CompanyRepository(RepositoryBase):
 
     async def create_company(self, company_data: CompanyCreateSchema, owner_id: UUID) -> Company:
         company = Company(
-            name=company_data.name,
-            description=company_data.description,
-            owner_id=owner_id,
-            hidden=company_data.hidden
+            name=company_data.name, description=company_data.description, owner_id=owner_id, hidden=company_data.hidden
         )
         self.db.add(company)
         await self.db.commit()
