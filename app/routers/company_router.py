@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from app.core.security import get_current_user
-from app.schemas.company_schema import CompanyCreateSchema, CompanyListSchema, CompanySchema
+from app.schemas.company_schema import CompanyCreateSchema, CompanyListSchema, CompanySchema, CompanyUpdateSchema
 from app.schemas.user_shema import UserDetail
 from app.services.company_service.service import CompanyService
 
@@ -42,7 +42,7 @@ async def create_company(
 @router.put("/{company_id}")
 async def update_company(
     company_id: UUID,
-    company_data: CompanyCreateSchema,
+    company_data: CompanyUpdateSchema,
     current_user: Annotated[UserDetail, Depends(get_current_user)],
     company_service: Annotated[CompanyService, Depends(CompanyService)]
 ) -> CompanySchema:
