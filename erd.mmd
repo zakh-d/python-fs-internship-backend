@@ -1,0 +1,33 @@
+erDiagram
+    USER ||--o{ COMPANY: owns
+    USER ||--o{ INVITATION: get
+    USER ||--o{ REQUEST: sumbit
+    USER }o--o{ COMPANY: membership
+    USER {
+        uuid id
+        varchar email
+        varchar username
+        varchar first_name
+        varchar last_name
+    }
+
+    COMPANY ||--o{ INVITATION: submit
+    COMPANY ||--o{ REQUEST: get
+    COMPANY {
+        uuid id
+        uuid owner_id
+        varchar name
+        varchar description
+    }
+    INVITATION {
+        uuid id
+        uuid company_id
+        uuid user_id
+        bool pending
+    }
+    REQUEST {
+        uuid id
+        uuid company_id
+        uuid user_id
+        bool pending   
+    }
