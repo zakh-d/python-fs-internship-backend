@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends
 
 from app.core.security import get_current_user
 from app.schemas.company_schema import CompanyCreateSchema, CompanyListSchema, CompanySchema, CompanyUpdateSchema
+from app.schemas.invitation_request_schema import InvitationOrRequestCreateSchema
 from app.schemas.user_shema import UserDetail
 from app.services.company_service.service import CompanyService
 
@@ -56,3 +57,12 @@ async def delete_company(
     current_user: Annotated[UserDetail, Depends(get_current_user)],  # requires authentication
 ) -> None:
     return await company_service.delete_company(company_id, current_user)
+
+
+@router.post('/invite')
+async def intive_user_to_company(
+    invite_data: InvitationOrRequestCreateSchema,
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+    company_service: Annotated[CompanyService, Depends(CompanyService)]
+) -> InvitationOrRequestCreateSchema:
+    return await company_service.create_invitation_for_user(invite_data, current_user)

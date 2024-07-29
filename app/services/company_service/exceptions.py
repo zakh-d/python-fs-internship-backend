@@ -13,3 +13,11 @@ class CompanyPermissionException(HTTPException):
 class CompanyNotFoundException(HTTPException):
     def __init__(self, company_id: UUID):
         super().__init__(status_code=status.HTTP_404_NOT_FOUND, detail=f'Company with id {company_id} not found')
+
+
+class UserAlreadyInvitedException(HTTPException):
+    def __init__(self, user_id: UUID, company_id: UUID):
+        super().__init__(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f'User with id {user_id} is already invited to company with id {company_id}',
+        )

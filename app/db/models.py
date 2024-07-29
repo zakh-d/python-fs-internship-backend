@@ -53,7 +53,7 @@ class User(ModelWithIdAndTimeStamps):
 
     participated_companies: Mapped[list['Company']] = relationship(secondary=associate_table, back_populates='members')
     invitations: Mapped[list['Invitation']] = relationship(back_populates='user')
-    requests: Mapped[list['Invitation']] = relationship(back_populates='user')
+    requests: Mapped[list['Request']] = relationship(back_populates='user')
 
     def __repr__(self) -> str:
         return f'<User {self.username}>'
@@ -84,7 +84,7 @@ class Invitation(Base):
 
     user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
     company_id: Mapped[UUID] = mapped_column(ForeignKey('companies.id', ondelete='CASCADE'), primary_key=True)
-    pending: Mapped[RequestInviteStatus] = mapped_column(
+    status: Mapped[RequestInviteStatus] = mapped_column(
         Enum(RequestInviteStatus, name='invitation_status'), default=RequestInviteStatus.PENDING
     )
 
@@ -97,7 +97,7 @@ class Request(Base):
 
     user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
     company_id: Mapped[UUID] = mapped_column(ForeignKey('companies.id', ondelete='CASCADE'), primary_key=True)
-    pending: Mapped[RequestInviteStatus] = mapped_column(
+    status: Mapped[RequestInviteStatus] = mapped_column(
         Enum(RequestInviteStatus, name='request_status'), default=RequestInviteStatus.PENDING
     )
 
