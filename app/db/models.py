@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import ClassVar
 from uuid import UUID, uuid4
 
-from sqlalchemy import TIMESTAMP, Boolean, Column, Enum, ForeignKey, String, Table, Uuid
+from sqlalchemy import TIMESTAMP, Boolean, Column, ForeignKey, String, Table, UniqueConstraint, Uuid
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -52,8 +52,7 @@ class User(ModelWithIdAndTimeStamps):
     )
 
     participated_companies: Mapped[list['Company']] = relationship(secondary=associate_table, back_populates='members')
-    invitations: Mapped[list['Invitation']] = relationship(back_populates='user')
-    requests: Mapped[list['Request']] = relationship(back_populates='user')
+    company_actions: Mapped[list['CompanyAction']] = relationship(back_populates='company')
 
     def __repr__(self) -> str:
         return f'<User {self.username}>'
@@ -69,37 +68,23 @@ class Company(ModelWithIdAndTimeStamps):
 
     owner: Mapped[User] = relationship(back_populates='companies')
     members: Mapped[list[User]] = relationship(secondary=associate_table, back_populates='participated_companies')
-    invitations: Mapped[list['Invitation']] = relationship(back_populates='company')
-    requests: Mapped[list['Request']] = relationship(back_populates='company')
+    company_actions: Mapped[list['CompanyAction']] = relationship(back_populates='company')
 
 
-class RequestInviteStatus(enum.Enum):
-    PENDING = 'pending'
-    APPROVED = 'approved'
-    REJECTED = 'rejected'
+class CompanyActionType(enum.Enum):
+    INVITATION = 'invitation'
+    REQUEST = 'request'
 
 
-class Invitation(Base):
-    __tablename__ = 'invitations'
+class CompanyAction(ModelWithIdAndTimeStamps):
+    __tablename__ = 'company_actions'
 
-    user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
-    company_id: Mapped[UUID] = mapped_column(ForeignKey('companies.id', ondelete='CASCADE'), primary_key=True)
-    status: Mapped[RequestInviteStatus] = mapped_column(
-        Enum(RequestInviteStatus, name='invitation_status'), default=RequestInviteStatus.PENDING
-    )
+    company_id: Mapped[UUID] = mapped_column(ForeignKey('companies.id', ondelete='CASCADE'))
+    user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'))
+    pending: Mapped[bool] = mapped_column(default=True)
+    type: Mapped[CompanyActionType]
 
-    user: Mapped[User] = relationship(back_populates='invitations')
-    company: Mapped[Company] = relationship(back_populates='invitations')
+    __table_args__ = (UniqueConstraint('company_id', 'user_id', name='unique_company_user'),)
 
-
-class Request(Base):
-    __tablename__ = 'requests'
-
-    user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'), primary_key=True)
-    company_id: Mapped[UUID] = mapped_column(ForeignKey('companies.id', ondelete='CASCADE'), primary_key=True)
-    status: Mapped[RequestInviteStatus] = mapped_column(
-        Enum(RequestInviteStatus, name='request_status'), default=RequestInviteStatus.PENDING
-    )
-
-    user: Mapped[User] = relationship(back_populates='requests')
-    company: Mapped[Company] = relationship(back_populates='requests')
+    company: Mapped[Company] = relationship(back_populates='company_actions')
+    user: Mapped[User] = relationship(back_populates='company_actions')

@@ -4,8 +4,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from app.core.security import get_current_user
+from app.schemas.company_action_schema import CompanyActionCreateSchema, CompanyActionSchema
 from app.schemas.company_schema import CompanyCreateSchema, CompanyListSchema, CompanySchema, CompanyUpdateSchema
-from app.schemas.invitation_request_schema import InvitationOrRequestCreateSchema
 from app.schemas.user_shema import UserDetail
 from app.services.company_service.service import CompanyService
 
@@ -59,10 +59,10 @@ async def delete_company(
     return await company_service.delete_company(company_id, current_user)
 
 
-@router.post('/invite')
+@router.post('/invites')
 async def intive_user_to_company(
-    invite_data: InvitationOrRequestCreateSchema,
+    invite_data: CompanyActionCreateSchema,
     current_user: Annotated[UserDetail, Depends(get_current_user)],
-    company_service: Annotated[CompanyService, Depends(CompanyService)]
-) -> InvitationOrRequestCreateSchema:
+    company_service: Annotated[CompanyService, Depends(CompanyService)],
+) -> CompanyActionSchema:
     return await company_service.create_invitation_for_user(invite_data, current_user)

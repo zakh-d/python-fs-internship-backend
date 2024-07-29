@@ -2,11 +2,11 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from app.db.models import Company, Request
+from app.db.models import Company
+from app.repositories.company_action_repository import CompanyActionRepository
 from app.repositories.company_repository import CompanyRepository
-from app.repositories.invitation_request_repository import InvitationRequestRepository
+from app.schemas.company_action_schema import CompanyActionCreateSchema, CompanyActionSchema
 from app.schemas.company_schema import CompanyCreateSchema, CompanyListSchema, CompanySchema
-from app.schemas.invitation_request_schema import InvitationOrRequestCreateSchema, InvitationOrRequestSchema
 from app.schemas.user_shema import UserDetail
 
 from .exceptions import CompanyNotFoundException, CompanyPermissionException, UserAlreadyInvitedException
@@ -16,13 +16,10 @@ class CompanyService:
     def __init__(
         self,
         company_repository: Annotated[CompanyRepository, Depends(CompanyRepository)],
-        intivation_repository: Annotated[InvitationRequestRepository, Depends(InvitationRequestRepository)],
-        request_repository: Annotated[InvitationRequestRepository, Depends(InvitationRequestRepository)],
+        company_action_repository: Annotated[CompanyActionRepository, Depends(CompanyActionRepository)],
     ):
         self._company_repository = company_repository
-        self._invitation_repository = intivation_repository
-        self._request_repository = request_repository
-        self._request_repository.change_table(Request)
+        self._company_action_repository = company_action_repository
 
     async def get_all_companies(self, page: int, limit: int) -> CompanyListSchema:
         offset = (page - 1) * limit
@@ -73,14 +70,14 @@ class CompanyService:
         return company.owner_id == current_user.id
 
     async def create_invitation_for_user(
-        self, intivation: InvitationOrRequestCreateSchema, current_user: UserDetail
-    ) -> InvitationOrRequestSchema:
+        self, intivation: CompanyActionCreateSchema, current_user: UserDetail
+    ) -> CompanyActionSchema:
         company = await self._company_repository.get_company_by_id(intivation.company_id)
         if company is None:
             raise CompanyNotFoundException(intivation.company_id)
         if not self._user_has_edit_permission(company, current_user):
             raise CompanyPermissionException()
-        intivation = await self._invitation_repository.create(intivation.user_id, intivation.company_id)
+        intivation = await self._company_action_repository.create_invintation(intivation.user_id, intivation.company_id)
         if intivation is None:
             raise UserAlreadyInvitedException(intivation.user_id, intivation.company_id)
-        return InvitationOrRequestSchema.model_validate(intivation)
+        return CompanyActionSchema.model_validate(intivation)
