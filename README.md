@@ -43,10 +43,9 @@ Just run prepared script
 
 ```mermaid
 erDiagram
+    USER ||--o{ COMPANY_ACTION: being_invited_or_requests
     USER ||--o{ COMPANY: owns
-    USER ||--o{ INVITATION: get
-    USER ||--o{ REQUEST: sumbit
-    USER }o--o{ COMPANY: membership
+    USER ||--o{ MEMBERSHIP: is_member_of
     USER {
         uuid id
         varchar email
@@ -55,25 +54,23 @@ erDiagram
         varchar last_name
     }
 
-    COMPANY ||--o{ INVITATION: submit
-    COMPANY ||--o{ REQUEST: get
+    COMPANY ||--o{ COMPANY_ACTION: intives_or_being_requested
+    COMPANY ||--o{ MEMBERSHIP: has_members
     COMPANY {
         uuid id
         uuid owner_id
         varchar name
         varchar description
     }
-    INVITATION {
+    COMPANY_ACTION {
         uuid id
         uuid company_id
         uuid user_id
-        bool pending
+        enum status
+        enum type
     }
-    REQUEST {
-        uuid id
+    MEMBERSHIP {
         uuid company_id
         uuid user_id
-        bool pending   
     }
-
 ```
