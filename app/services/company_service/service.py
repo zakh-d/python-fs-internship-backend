@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Awaitable
 from uuid import UUID
 
 from fastapi import Depends
@@ -86,17 +86,36 @@ class CompanyService:
             raise UserAlreadyInvitedException(user_id, company_id)
         return CompanyActionSchema.model_validate(intivation)
 
-    async def get_invites_for_company(
+    async def _get_company_actions_for_company(
             self,
             company_id: UUID,
             current_user: UserDetail,
+            get_func: Awaitable,
     ) -> list[CompanyActionSchema]:
         company = await self._company_repository.get_company_by_id(company_id)
         if company is None:
             raise CompanyNotFoundException(company_id)
         if not self._user_has_edit_permission(company, current_user):
             raise CompanyPermissionException()
-        invites = await self._company_action_repository.get_all_invites_by_company(company_id)
+        invites = await get_func(company_id)
         return [
             CompanyActionSchema.model_validate(invite) for invite in invites
         ]
+
+    async def get_invites_for_company(
+            self,
+            company_id: UUID,
+            current_user: UserDetail,
+    ) -> list[CompanyActionSchema]:
+        return await self._get_company_actions_for_company(
+            company_id, current_user, self._company_action_repository.get_all_invites_by_company
+        )
+
+    async def get_requests_to_company(
+            self,
+            company_id: UUID,
+            current_user: UserDetail,
+    ) -> list[CompanyActionSchema]:
+        return await self._get_company_actions_for_company(
+            company_id, current_user, self._company_action_repository.get_all_invites_by_user
+        )

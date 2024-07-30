@@ -76,3 +76,12 @@ async def intive_user_to_company(
     company_service: Annotated[CompanyService, Depends(CompanyService)],
 ) -> CompanyActionSchema:
     return await company_service.invite_user(company_id, user_id, current_user)
+
+
+@router.get('/{company_id}/requests/')
+async def get_requests_to_company(
+    company_id: UUID,
+    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],  # requires authentication
+) -> list[CompanyActionSchema]:
+    return await company_service.get_requests_to_company(company_id, current_user)
