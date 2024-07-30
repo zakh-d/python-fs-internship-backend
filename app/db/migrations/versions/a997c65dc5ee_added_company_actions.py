@@ -38,3 +38,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table('company_actions')
+    sa.Enum('INVITATION', 'REQUEST', name='companyactiontype').drop(op.get_bind())

@@ -1,11 +1,12 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import Depends
 
 from app.db.models import Company
 from app.repositories.company_action_repository import CompanyActionRepository
 from app.repositories.company_repository import CompanyRepository
-from app.schemas.company_action_schema import CompanyActionCreateSchema, CompanyActionSchema
+from app.schemas.company_action_schema import CompanyActionSchema
 from app.schemas.company_schema import CompanyCreateSchema, CompanyListSchema, CompanySchema
 from app.schemas.user_shema import UserDetail
 
@@ -31,7 +32,7 @@ class CompanyService:
             total_count=await self._company_repository.get_companies_count(),
         )
 
-    async def get_company_by_id(self, company_id: str) -> CompanySchema:
+    async def get_company_by_id(self, company_id: UUID) -> CompanySchema:
         company = await self._company_repository.get_company_by_id(company_id)
         if not company:
             raise CompanyNotFoundException(company_id)
@@ -43,7 +44,7 @@ class CompanyService:
         return CompanySchema.model_validate(company)
 
     async def update_company(
-        self, company_id: str, company_data: CompanyCreateSchema, current_user: UserDetail
+        self, company_id: UUID, company_data: CompanyCreateSchema, current_user: UserDetail
     ) -> CompanySchema:
         company = await self._company_repository.get_company_by_id(company_id)
         if not company:
@@ -53,7 +54,7 @@ class CompanyService:
         company = await self._company_repository.update_company(company, company_data)
         return CompanySchema.model_validate(company)
 
-    async def delete_company(self, company_id: str, current_user: UserDetail) -> None:
+    async def delete_company(self, company_id: UUID, current_user: UserDetail) -> None:
         company = await self._company_repository.get_company_by_id(company_id)
         if not company:
             raise CompanyNotFoundException(company_id)
@@ -69,15 +70,33 @@ class CompanyService:
         # only admin can delete their company
         return company.owner_id == current_user.id
 
-    async def create_invitation_for_user(
-        self, intivation: CompanyActionCreateSchema, current_user: UserDetail
+    async def invite_user(
+        self,
+        company_id: UUID,
+        user_id: UUID,
+        current_user: UserDetail
     ) -> CompanyActionSchema:
-        company = await self._company_repository.get_company_by_id(intivation.company_id)
+        company = await self._company_repository.get_company_by_id(company_id)
         if company is None:
-            raise CompanyNotFoundException(intivation.company_id)
+            raise CompanyNotFoundException(company_id)
         if not self._user_has_edit_permission(company, current_user):
             raise CompanyPermissionException()
-        intivation = await self._company_action_repository.create_invintation(intivation.user_id, intivation.company_id)
+        intivation = await self._company_action_repository.create_invintation(company_id, user_id)
         if intivation is None:
-            raise UserAlreadyInvitedException(intivation.user_id, intivation.company_id)
+            raise UserAlreadyInvitedException(user_id, company_id)
         return CompanyActionSchema.model_validate(intivation)
+
+    async def get_invites_for_company(
+            self,
+            company_id: UUID,
+            current_user: UserDetail,
+    ) -> list[CompanyActionSchema]:
+        company = await self._company_repository.get_company_by_id(company_id)
+        if company is None:
+            raise CompanyNotFoundException(company_id)
+        if not self._user_has_edit_permission(company, current_user):
+            raise CompanyPermissionException()
+        invites = await self._company_action_repository.get_all_invites_by_company(company_id)
+        return [
+            CompanyActionSchema.model_validate(invite) for invite in invites
+        ]

@@ -1,8 +1,8 @@
-from sqlite3 import IntegrityError
 from typing import Union
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.db.models import CompanyAction, CompanyActionType
 from app.repositories.repository_base import RepositoryBase
@@ -29,6 +29,7 @@ class CompanyActionRepository(RepositoryBase):
         try:
             await self.db.commit()
         except IntegrityError:
+            await self.db.rollback()
             return None
         await self.db.refresh(action)
         return action

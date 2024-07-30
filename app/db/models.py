@@ -52,7 +52,7 @@ class User(ModelWithIdAndTimeStamps):
     )
 
     participated_companies: Mapped[list['Company']] = relationship(secondary=associate_table, back_populates='members')
-    company_actions: Mapped[list['CompanyAction']] = relationship(back_populates='company')
+    company_actions: Mapped[list['CompanyAction']] = relationship(back_populates='user')
 
     def __repr__(self) -> str:
         return f'<User {self.username}>'
