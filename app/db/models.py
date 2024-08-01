@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import ClassVar
 from uuid import UUID, uuid4
 
-from sqlalchemy import TIMESTAMP, Boolean, Column, ForeignKey, String, Table, UniqueConstraint, Uuid
+from sqlalchemy import TIMESTAMP, Boolean, ForeignKey, String, UniqueConstraint, Uuid
 from sqlalchemy.ext.asyncio import AsyncAttrs
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -29,14 +29,6 @@ class ModelWithIdAndTimeStamps(AsyncAttrs, Base):
     updated_at: Mapped[datetime] = mapped_column(server_default='now()', onupdate=datetime.now)
 
 
-associate_table = Table(
-    'membership_table',
-    Base.metadata,
-    Column('company_id', ForeignKey('companies.id', ondelete='CASCADE'), primary_key=True),
-    Column('user_id', ForeignKey('users.id', ondelete='CASCADE'), primary_key=True),
-)
-
-
 class User(ModelWithIdAndTimeStamps):
     __tablename__ = 'users'
 
@@ -51,7 +43,6 @@ class User(ModelWithIdAndTimeStamps):
         'Company', back_populates='owner', cascade='all, delete-orphan', passive_deletes=True
     )
 
-    participated_companies: Mapped[list['Company']] = relationship(secondary=associate_table, back_populates='members')
     company_actions: Mapped[list['CompanyAction']] = relationship(back_populates='user')
 
     def __repr__(self) -> str:
@@ -67,13 +58,13 @@ class Company(ModelWithIdAndTimeStamps):
     owner_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'))
 
     owner: Mapped[User] = relationship(back_populates='companies')
-    members: Mapped[list[User]] = relationship(secondary=associate_table, back_populates='participated_companies')
     company_actions: Mapped[list['CompanyAction']] = relationship(back_populates='company')
 
 
 class CompanyActionType(enum.Enum):
     INVITATION = 'invitation'
     REQUEST = 'request'
+    MEMBERSHIP = 'membership'
 
 
 class CompanyAction(ModelWithIdAndTimeStamps):
