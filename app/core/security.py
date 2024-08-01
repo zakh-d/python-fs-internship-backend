@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Union
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -6,11 +6,13 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.schemas.user_shema import UserDetail
 from app.services.authentication_service.service import AuthenticationService
 
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
-def get_token_from_header(authorization: Annotated[HTTPAuthorizationCredentials, Depends(security)]) -> str:
-    if authorization.scheme.lower() != 'bearer':
+def get_token_from_header(
+    authorization: Annotated[Union[HTTPAuthorizationCredentials, None], Depends(security)],
+) -> str:
+    if authorization is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail='Not authenticated',

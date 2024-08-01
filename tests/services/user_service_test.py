@@ -142,7 +142,7 @@ async def test_get_user_by_id_user_not_found(
 
 
 @pytest.mark.asyncio
-async def test_update_user(
+async def test_update_user_first_name(
     user_repo: UserRepository,
     user_service: UserService
 ):
@@ -159,7 +159,7 @@ async def test_update_user(
 
     update_schema = UserUpdateSchema(
         first_name='Johny',
-        password='password123'
+        last_name='Sand',
     )
     try:
         await user_service.update_user(john_snow.id, update_schema)
@@ -204,7 +204,7 @@ async def test_update_user_invalid_password(
     await user_repo.commit_me(john_snow)
 
     update_schema = UserUpdateSchema(
-        first_name='Johny',
+        new_password='testpassword123',
         password='password1231'
     )
     try:
@@ -215,49 +215,7 @@ async def test_update_user_invalid_password(
 
     john_snow = await user_repo.get_user_by_id(john_snow.id)
 
-    assert john_snow.first_name == 'John'
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize(('conflict_field', 'value'), [
-    ('email', 'lord_commander@north.wall'),
-])
-async def test_update_user_user_already_exists(
-    user_repo: UserRepository,
-    user_service: UserService,
-    conflict_field: str,
-    value: str,
-):
-    # Create a user and commit it to the database
-    john_snow = user_repo.create_user_with_hashed_password(
-        username='john_snow',
-        first_name='John',
-        last_name='Snow',
-        email='lord_commander@north.wall',
-        hashed_password=argon2.hash('password123')
-    )
-
-    daenerys = user_repo.create_user_with_hashed_password(
-        username='daenerys',
-        first_name='Daenerys',
-        last_name='Targaryen',
-        email='mother.of@dragons',
-        hashed_password=argon2.hash('password123')
-    )
-
-    await user_repo.commit_me(john_snow)
-    await user_repo.commit_me(daenerys)
-
-    update_schema = UserUpdateSchema(
-        password='password123'
-    )
-    update_schema.__setattr__(conflict_field, value)
-
-    try:
-        await user_service.update_user(daenerys.id, update_schema)
-        assert 1 == 0, 'UserService did not throw an exception'
-    except UserAlreadyExistsException as e:
-        assert e.detail == f"User with {conflict_field}: '{value}' already exists!"
+    assert argon2.verify('password123', john_snow.hashed_password)
 
 
 @pytest.mark.asyncio

@@ -44,3 +44,5 @@ def user_service(user_repo):
 @pytest.fixture
 def fake_authentication():
     app.dependency_overrides[get_current_user] = lambda: 1
+    yield
+    del app.dependency_overrides[get_current_user]

@@ -27,7 +27,7 @@ class AuthenticationService:
 
         return UserSchema.model_validate(user)
 
-    def generate_jwt_token(user: UserSchema) -> str:
+    def generate_jwt_token(self, user: UserSchema) -> str:
         now_plus_expiration = datetime.now(timezone.utc) + timedelta(minutes=settings.JWT_EXPIRATION_MINUTES)
         token = jwt.encode(
             {
@@ -65,7 +65,6 @@ class AuthenticationService:
 
         user_email = self._get_email_form_auth0_token(token)
         if user_email is not None:
-
             user = await self.user_repository.get_user_by_email(user_email)
             if user is not None:
                 return user

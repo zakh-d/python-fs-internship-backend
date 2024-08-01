@@ -79,7 +79,8 @@ ignore = [
     "ANN204", # missing return tupe from __init__
     "B904", # raise ... from err 
     "ANN401", # any is disallowed
-    
+    "ANN002", # type annotation for *args
+    "ANN003", # type annotation for **kwargs
 
 ]
 
