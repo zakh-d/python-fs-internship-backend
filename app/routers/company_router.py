@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 
 from app.core.security import get_current_user
 from app.schemas.company_action_schema import CompanyActionSchema
@@ -78,6 +78,16 @@ async def intive_user_to_company(
     return await company_service.invite_user(company_id, user_id, current_user)
 
 
+@router.delete('/{company_id}/invites/{user_id}')
+async def cancel_invite(
+    company_id: UUID,
+    user_id: UUID,
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+    company_service: Annotated[CompanyService, Depends(CompanyService)],
+) -> None:
+    return await company_service.cancel_invite(company_id, user_id, current_user)
+
+
 @router.get('/{company_id}/requests/')
 async def get_requests_to_company(
     company_id: UUID,
@@ -85,3 +95,23 @@ async def get_requests_to_company(
     current_user: Annotated[UserDetail, Depends(get_current_user)],  # requires authentication
 ) -> list[CompanyActionSchema]:
     return await company_service.get_requests_to_company(company_id, current_user)
+
+
+@router.post('/{company_id}/requests/{user_id}')
+async def accept_request(
+    company_id: UUID,
+    user_id: UUID,
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+    company_service: Annotated[CompanyService, Depends(CompanyService)],
+) -> CompanyActionSchema:
+    return await company_service.accept_request(company_id, user_id, current_user)
+
+
+@router.delete('/{company_id}/requests/{user_id}', status_code=status.HTTP_204_NO_CONTENT)
+async def reject_request(
+    company_id: UUID,
+    user_id: UUID,
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+    company_service: Annotated[CompanyService, Depends(CompanyService)],
+) -> None:
+    return await company_service.reject_request(company_id, user_id, current_user)

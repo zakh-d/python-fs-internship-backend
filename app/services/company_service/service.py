@@ -10,7 +10,12 @@ from app.schemas.company_action_schema import CompanyActionSchema
 from app.schemas.company_schema import CompanyCreateSchema, CompanyListSchema, CompanySchema
 from app.schemas.user_shema import UserDetail
 
-from .exceptions import CompanyNotFoundException, CompanyPermissionException, UserAlreadyInvitedException
+from .exceptions import (
+    ActionNotFound,
+    CompanyNotFoundException,
+    CompanyPermissionException,
+    UserAlreadyInvitedException,
+)
 
 
 class CompanyService:
@@ -33,11 +38,15 @@ class CompanyService:
     async def _company_exists_and_user_has_permission(
         self, company_id: UUID, current_user: UserDetail, permission_func: Callable[[UUID, UUID], bool]
     ) -> Company:
+        company = await self.check_company_exists(company_id)
+        if not permission_func(company, current_user):
+            raise CompanyPermissionException()
+        return company
+
+    async def check_company_exists(self, company_id: UUID) -> Company:
         company = await self._company_repository.get_company_by_id(company_id)
         if company is None:
             raise CompanyNotFoundException(company_id)
-        if not permission_func(company, current_user):
-            raise CompanyPermissionException()
         return company
 
     async def get_all_companies(self, page: int, limit: int) -> CompanyListSchema:
@@ -96,7 +105,24 @@ class CompanyService:
         company_id: UUID,
         current_user: UserDetail,
     ) -> list[CompanyActionSchema]:
-        await self._company_exists_and_user_has_permission(company_id, current_user)
+        await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)
         return await self._company_action_repository.get_company_action_for_company_by_type(
             company_id, CompanyActionType.REQUEST
         )
+
+    async def accept_request(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> CompanyActionSchema:
+        await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)
+        request = await self._company_action_repository.get_company_action_by_company_and_user(
+            company_id, user_id, CompanyActionType.REQUEST
+        )
+        if not request:
+            raise ActionNotFound(CompanyActionType.REQUEST)
+        return await self._company_action_repository.update(request, CompanyActionType.MEMBERSHIP)
+
+    async def reject_request(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> None:
+        await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)
+        await self._company_action_repository.delete(company_id, user_id, CompanyActionType.REQUEST)
+
+    async def cancel_invite(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> None:
+        await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)
+        await self._company_action_repository.delete(company_id, user_id, CompanyActionType.INVITATION)
