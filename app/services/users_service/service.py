@@ -1,11 +1,14 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import Depends
 from passlib.hash import argon2
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories import UserRepository
+from app.db.models import CompanyActionType
+from app.repositories import CompanyActionRepository, UserRepository
+from app.schemas.company_action_schema import CompanyActionSchema
+from app.schemas.company_schema import CompanyListSchema, CompanySchema
 from app.schemas.user_shema import UserDetail, UserList, UserSchema, UserSignUpSchema, UserUpdateSchema
 from app.services.users_service.exceptions import (
     InvalidPasswordException,
@@ -17,21 +20,26 @@ from app.utils.logging import logger
 
 
 class UserService:
-    def __init__(self, user_repository: Annotated[AsyncSession, Depends(UserRepository)]):
-        self.user_repository = user_repository
+    def __init__(
+        self,
+        user_repository: Annotated[UserRepository, Depends(UserRepository)],
+        company_action_repository: Annotated[CompanyActionRepository, Depends(CompanyActionRepository)],
+    ):
+        self._user_repository = user_repository
+        self._company_action_repository = company_action_repository
 
     async def get_all_users(self, page: int, limit: int) -> UserList:
         offset = (page - 1) * limit
-        users = await self.user_repository.get_all_users(offset, limit)
+        users = await self._user_repository.get_all_users(offset, limit)
         return UserList(
             users=[UserSchema.model_validate(user) for user in users],
-            total_count=await self.user_repository.get_users_count(),
+            total_count=await self._user_repository.get_users_count(),
         )
 
     async def create_user(self, user_data: UserSignUpSchema) -> UserSchema:
         hashed_password = argon2.hash(user_data.password)
 
-        created_user = self.user_repository.create_user_with_hashed_password(
+        created_user = self._user_repository.create_user_with_hashed_password(
             username=user_data.username,
             first_name=user_data.first_name,
             last_name=user_data.last_name,
@@ -39,7 +47,7 @@ class UserService:
             hashed_password=hashed_password,
         )
         try:
-            await self.user_repository.commit_me(created_user)
+            await self._user_repository.commit_me(created_user)
             logger.info(f'User with id: {created_user.id} created successfully!')
         except IntegrityError as e:
             conflicting_field, value = get_conflicting_field(e)
@@ -47,14 +55,14 @@ class UserService:
             raise UserAlreadyExistsException(conflicting_field, value)
         return UserSchema.model_validate(created_user)
 
-    async def get_user_by_id(self, user_id: str) -> UserDetail:
-        user = await self.user_repository.get_user_by_id(user_id)
+    async def get_user_by_id(self, user_id: UUID) -> UserDetail:
+        user = await self._user_repository.get_user_by_id(user_id)
         if not user:
             raise UserNotFoundException('id', user_id)
         return UserDetail.model_validate(user)
 
-    async def update_user(self, user_id: str, user_data: UserUpdateSchema) -> UserDetail:
-        user = await self.user_repository.get_user_by_id(user_id)
+    async def update_user(self, user_id: UUID, user_data: UserUpdateSchema) -> UserDetail:
+        user = await self._user_repository.get_user_by_id(user_id)
         if not user:
             raise UserNotFoundException('id', user_id)
 
@@ -66,9 +74,9 @@ class UserService:
             logger.info(f'Updated password for user with id: {user.id}')
             new_user_data['hashed_password'] = argon2.hash(user_data.new_password)
 
-        self.user_repository.update_user(user, new_user_data)
+        self._user_repository.update_user(user, new_user_data)
         try:
-            await self.user_repository.commit_me(user)
+            await self._user_repository.commit_me(user)
             logger.info(f'User with id: {user.id} updated successfully!')
         except IntegrityError as e:
             conflicting_field, value = get_conflicting_field(e)
@@ -77,11 +85,53 @@ class UserService:
 
         return UserDetail.model_validate(user)
 
-    async def delete_user(self, user_id: str) -> None:
-        user = await self.user_repository.get_user_by_id(user_id)
+    async def delete_user(self, user_id: UUID) -> None:
+        user = await self._user_repository.get_user_by_id(user_id)
         if not user:
             raise UserNotFoundException('id', user_id)
 
-        await self.user_repository.delete_user(user)
-        await self.user_repository.commit_me(user, refresh=False)
+        await self._user_repository.delete_user(user)
+        await self._user_repository.commit_me(user, refresh=False)
         logger.info(f'User with id: {user.id} deleted successfully!')
+
+    async def get_user_invites(self, user_id: UUID) -> CompanyListSchema:
+        companies = await self._company_action_repository.get_companies_related_to_user(
+            user_id, CompanyActionType.INVITATION
+        )
+        for company in companies:
+            company.owner = await company.awaitable_attrs.owner
+        return CompanyListSchema(
+            companies=[CompanySchema.model_validate(company) for company in companies], total_count=len(companies)
+        )
+
+    async def accept_invitation(self, user_id: UUID, company_id: UUID) -> None:
+        invitation = await self._company_action_repository.get_company_action_by_company_and_user(
+            company_id, user_id, CompanyActionType.INVITATION
+        )
+        if invitation is None:
+            raise Exception  # TODO: create custom exception
+        await self._company_action_repository.update(invitation, CompanyActionType.MEMBERSHIP)
+
+    async def reject_invitation(self, user_id: UUID, company_id: UUID) -> None:
+        await self._company_action_repository.delete(company_id, user_id, CompanyActionType.INVITATION)
+
+    async def get_user_requests(self, user_id: UUID) -> CompanyListSchema:
+        companies = await self._company_action_repository.get_companies_related_to_user(
+            user_id, CompanyActionType.REQUEST
+        )
+        for company in companies:
+            company.owner = await company.awaitable_attrs.owner
+        return CompanyListSchema(
+            companies=[CompanySchema.model_validate(company) for company in companies], total_count=len(companies)
+        )
+
+    async def send_request(self, user_id: UUID, company_id: UUID) -> CompanyActionSchema:
+        request = await self._company_action_repository.create(company_id, user_id, CompanyActionType.REQUEST)
+
+        if request is None:
+            raise Exception  # TODO: change to custom exceptions
+
+        return CompanyActionSchema.model_validate(request)
+
+    async def cancel_request(self, user_id: UUID, company_id: UUID) -> None:
+        await self._company_action_repository.delete(company_id, user_id, CompanyActionType.REQUEST)

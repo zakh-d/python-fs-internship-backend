@@ -41,7 +41,7 @@ def user_repo(get_db):
 
 @pytest.fixture
 def user_service(user_repo):
-    return UserService(user_repo)
+    return UserService(user_repo, None)
 
 
 @pytest.fixture

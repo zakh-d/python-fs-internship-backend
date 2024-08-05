@@ -91,9 +91,7 @@ class CompanyService:
         return CompanyActionSchema.model_validate(intivation)
 
     async def _get_related_users_list(self, company_id: UUID, relation: CompanyActionType) -> UserList:
-        related_users = await self._company_action_repository.get_users_related_to_company(
-            company_id, relation
-        )
+        related_users = await self._company_action_repository.get_users_related_to_company(company_id, relation)
         return UserList(
             users=[UserSchema.model_validate(user) for user in related_users], total_count=len(related_users)
         )

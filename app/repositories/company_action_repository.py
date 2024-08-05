@@ -1,7 +1,7 @@
 from typing import Union
 from uuid import UUID
 
-from sqlalchemy import delete, select, and_
+from sqlalchemy import and_, delete, select
 from sqlalchemy.exc import IntegrityError
 
 from app.db.models import Company, CompanyAction, CompanyActionType, User
