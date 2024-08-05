@@ -1,25 +1,21 @@
-from typing import Annotated, Union
+from typing import Union
 from uuid import UUID
 
-from fastapi import Depends
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db import get_db
 from app.db.models import User
+from app.repositories.repository_base import RepositoryBase
 
 
-class UserRepository:
-    def __init__(self, db: Annotated[AsyncSession, Depends(get_db)]):
-        self.db: AsyncSession = db
+class UserRepository(RepositoryBase):
+    async def get_all_users(self, offset: int, limit: int) -> list[User]:
+        return await self._get_all_items(offset, limit, User)
 
-    async def get_all_users(self) -> list[User]:
-        results = await self.db.execute(select(User))
-        return results.scalars().all()
+    async def get_users_count(self) -> int:
+        return await self._get_items_count(User)
 
     async def get_user_by_id(self, user_id: UUID) -> User:
-        results = await self.db.execute(select(User).where(User.id == user_id))
-        return results.scalars().first()
+        return await self._get_item_by_id(user_id, User)
 
     async def get_user_by_email(self, email: str) -> User:
         results = await self.db.execute(select(User).where(User.email == email))

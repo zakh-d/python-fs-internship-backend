@@ -20,9 +20,13 @@ class UserService:
     def __init__(self, user_repository: Annotated[AsyncSession, Depends(UserRepository)]):
         self.user_repository = user_repository
 
-    async def get_all_users(self) -> UserList:
-        users = await self.user_repository.get_all_users()
-        return UserList(users=[UserSchema.model_validate(user) for user in users])
+    async def get_all_users(self, page: int, limit: int) -> UserList:
+        offset = (page - 1) * limit
+        users = await self.user_repository.get_all_users(offset, limit)
+        return UserList(
+            users=[UserSchema.model_validate(user) for user in users],
+            total_count=await self.user_repository.get_users_count(),
+        )
 
     async def create_user(self, user_data: UserSignUpSchema) -> UserSchema:
         hashed_password = argon2.hash(user_data.password)

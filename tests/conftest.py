@@ -8,6 +8,9 @@ from app.core.security import get_current_user
 from app.main import app
 from app.db.db import async_session
 from app.repositories import UserRepository
+from app.repositories.company_repository import CompanyRepository
+from app.schemas.user_shema import UserSchema
+from app.services.authentication_service.service import AuthenticationService
 from app.services.users_service import UserService
 
 
@@ -46,3 +49,35 @@ def fake_authentication():
     app.dependency_overrides[get_current_user] = lambda: 1
     yield
     del app.dependency_overrides[get_current_user]
+
+
+@pytest.fixture
+async def test_user(user_repo: UserRepository) -> UserSchema:
+    user = user_repo.create_user_with_hashed_password(
+        username='test_user',
+        first_name='TEST',
+        last_name='USER',
+        email='test_user@example.com',
+        hashed_password='fake-hash-password123'
+    )
+    await user_repo.commit_me(user)
+    return UserSchema.model_validate(user)
+
+
+@pytest.fixture
+def auth_service(user_repo: UserRepository) -> AuthenticationService:
+    return AuthenticationService(user_repo)
+
+
+@pytest.fixture
+async def access_token(
+    test_user: UserSchema,
+    auth_service: AuthenticationService
+) -> str:
+    return auth_service.generate_jwt_token(UserSchema.model_validate(test_user))
+
+
+@pytest.fixture
+def company_repo(get_db):
+    return CompanyRepository(get_db)
+

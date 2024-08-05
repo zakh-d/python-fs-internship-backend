@@ -2,9 +2,9 @@ from datetime import datetime
 from typing import ClassVar
 from uuid import UUID, uuid4
 
-from sqlalchemy import TIMESTAMP, String, Uuid
+from sqlalchemy import TIMESTAMP, Boolean, ForeignKey, String, Uuid
 from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy.orm import Mapped, declarative_base, mapped_column
+from sqlalchemy.orm import Mapped, declarative_base, mapped_column, relationship
 
 Base = declarative_base()
 
@@ -18,6 +18,7 @@ class ModelBase(AsyncAttrs, Base):
         datetime: TIMESTAMP(timezone=True),
         UUID: Uuid,
         str: String,
+        bool: Boolean,
     }
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
@@ -35,5 +36,20 @@ class User(ModelBase):
     email: Mapped[str] = mapped_column(String(50), index=True, unique=True)
     hashed_password: Mapped[str] = mapped_column(String(256))
 
+    companies: Mapped[list['Company']] = relationship(
+        'Company', back_populates='owner', cascade='all, delete-orphan', passive_deletes=True
+    )
+
     def __repr__(self) -> str:
         return f'<User {self.username}>'
+
+
+class Company(ModelBase):
+    __tablename__ = 'companies'
+
+    name: Mapped[str] = mapped_column(String(50), index=True)
+    description: Mapped[str] = mapped_column(String(250), nullable=True)
+    hidden: Mapped[bool] = mapped_column(Boolean, default=True)
+    owner_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'))
+
+    owner: Mapped[User] = relationship(back_populates='companies')
