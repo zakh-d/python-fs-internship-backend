@@ -80,3 +80,4 @@ async def access_token(
 @pytest.fixture
 def company_repo(get_db):
     return CompanyRepository(get_db)
+
