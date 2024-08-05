@@ -4,7 +4,7 @@ from uuid import UUID
 from sqlalchemy import delete, select, and_
 from sqlalchemy.exc import IntegrityError
 
-from app.db.models import CompanyAction, CompanyActionType
+from app.db.models import Company, CompanyAction, CompanyActionType, User
 from app.repositories.repository_base import RepositoryBase
 
 
@@ -13,6 +13,24 @@ class CompanyActionRepository(RepositoryBase):
         self, company_id: UUID, _type: CompanyActionType
     ) -> list[CompanyAction]:
         query = select(CompanyAction).where(and_(CompanyAction.company_id == company_id, CompanyAction.type == _type))
+        result = await self.db.execute(query)
+        return result.scalars().all()
+
+    async def get_users_related_to_company(self, company_id: UUID, relation: CompanyActionType) -> list[User]:
+        query = (
+            select(User)
+            .join_from(CompanyAction, User)
+            .where(and_(CompanyAction.company_id == company_id, CompanyAction.type == relation))
+        )
+        result = await self.db.execute(query)
+        return result.scalars().all()
+
+    async def get_companies_related_to_user(self, user_id: UUID, relation: CompanyActionType) -> list[Company]:
+        query = (
+            select(Company)
+            .join_from(CompanyAction, Company)
+            .where(and_(CompanyAction.user_id == user_id, CompanyAction.type == relation))
+        )
         result = await self.db.execute(query)
         return result.scalars().all()
 

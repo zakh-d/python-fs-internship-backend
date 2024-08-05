@@ -8,7 +8,7 @@ from app.repositories.company_action_repository import CompanyActionRepository
 from app.repositories.company_repository import CompanyRepository
 from app.schemas.company_action_schema import CompanyActionSchema
 from app.schemas.company_schema import CompanyCreateSchema, CompanyListSchema, CompanySchema
-from app.schemas.user_shema import UserDetail
+from app.schemas.user_shema import UserDetail, UserList, UserSchema
 
 from .exceptions import (
     ActionNotFound,
@@ -90,25 +90,37 @@ class CompanyService:
             raise UserAlreadyInvitedException(user_id, company_id)
         return CompanyActionSchema.model_validate(intivation)
 
+    async def _get_related_users_list(self, company_id: UUID, relation: CompanyActionType) -> UserList:
+        related_users = await self._company_action_repository.get_users_related_to_company(
+            company_id, relation
+        )
+        return UserList(
+            users=[UserSchema.model_validate(user) for user in related_users], total_count=len(related_users)
+        )
+
     async def get_invites_for_company(
         self,
         company_id: UUID,
         current_user: UserDetail,
-    ) -> list[CompanyActionSchema]:
+    ) -> UserList:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)
-        return await self._company_action_repository.get_company_action_for_company_by_type(
-            company_id, CompanyActionType.INVITATION
-        )
+        return await self._get_related_users_list(company_id, CompanyActionType.INVITATION)
 
     async def get_requests_to_company(
         self,
         company_id: UUID,
         current_user: UserDetail,
-    ) -> list[CompanyActionSchema]:
+    ) -> UserList:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)
-        return await self._company_action_repository.get_company_action_for_company_by_type(
-            company_id, CompanyActionType.REQUEST
-        )
+        return await self._get_related_users_list(company_id, CompanyActionType.REQUEST)
+
+    async def get_company_members(
+        self,
+        company_id: UUID,
+        current_user: UserDetail,
+    ) -> UserList:
+        await self.check_company_exists(company_id)
+        return await self._get_related_users_list(company_id, CompanyActionType.MEMBERSHIP)
 
     async def accept_request(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> CompanyActionSchema:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)
