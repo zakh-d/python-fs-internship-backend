@@ -22,6 +22,16 @@ async def get_companies(
     return await company_service.get_all_companies(page, limit)
 
 
+@router.get('/my/')
+async def get_my_companies(
+    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],  # requires authentication
+    page: int = 1,
+    limit: int = 10,
+) -> CompanyListSchema:
+    return await company_service.get_companies_by_owner_id(current_user.id, True, page, limit)
+
+
 @router.get('/{company_id}')
 async def get_company_by_id(
     company_id: UUID,

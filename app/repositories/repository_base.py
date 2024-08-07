@@ -2,7 +2,7 @@ from typing import Annotated, TypeVar
 from uuid import UUID
 
 from fastapi import Depends
-from sqlalchemy import delete, func, select
+from sqlalchemy import ColumnElement, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_db
@@ -18,8 +18,18 @@ class RepositoryBase:
         results = await self.db.execute(select(table).offset(offset).limit(limit))
         return results.scalars().all()
 
+    async def _get_all_meeting_condition(
+        self, offset: int, limit: int, condition: ColumnElement[bool], table: T
+    ) -> list[T]:
+        results = await self.db.execute(select(table).where(condition).offset(offset).limit(limit))
+        return results.scalars().all()
+
     async def _get_items_count(self, table: T) -> int:
         results = await self.db.execute(select(func.count(table.id)))
+        return results.scalar_one()
+
+    async def _get_items_count_by_condition(self, condition: ColumnElement[bool], table: T) -> int:
+        results = await self.db.execute(select(func.count(table.id)).where(condition))
         return results.scalar_one()
 
     async def _get_item_by_id(self, item_id: UUID, table: T) -> T:

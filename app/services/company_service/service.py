@@ -51,12 +51,24 @@ class CompanyService:
 
     async def get_all_companies(self, page: int, limit: int) -> CompanyListSchema:
         offset = (page - 1) * limit
-        companies = await self._company_repository.get_all_companies(offset, limit)
+        companies, count = await self._company_repository.get_all_companies(offset, limit)
         for company in companies:
             company.owner = await company.awaitable_attrs.owner
         return CompanyListSchema(
-            companies=[CompanySchema.model_validate(company) for company in companies],
-            total_count=await self._company_repository.get_companies_count(),
+            companies=[CompanySchema.model_validate(company) for company in companies], total_count=count
+        )
+
+    async def get_companies_by_owner_id(
+        self, owner_id: UUID, including_hidden: bool, page: int, limit: int
+    ) -> CompanyListSchema:
+        offset = (page - 1) * limit
+        companies, count = await self._company_repository.get_companies_by_owner_id(
+            owner_id, including_hidden, offset, limit
+        )
+        for company in companies:
+            company.owner = await company.awaitable_attrs.owner
+        return CompanyListSchema(
+            companies=[CompanySchema.model_validate(company) for company in companies], total_count=count
         )
 
     async def get_company_by_id(self, company_id: UUID) -> CompanySchema:
