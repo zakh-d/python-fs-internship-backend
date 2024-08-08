@@ -2,7 +2,6 @@ from typing import Union
 from uuid import UUID
 
 from sqlalchemy import and_, delete, select
-from sqlalchemy.exc import IntegrityError
 
 from app.db.models import Company, CompanyAction, CompanyActionType, User
 from app.repositories.repository_base import RepositoryBase
@@ -48,22 +47,20 @@ class CompanyActionRepository(RepositoryBase):
         result = await self.db.execute(query)
         return result.scalars().first()
 
-    async def create(self, company_id: UUID, user_id: UUID, type: CompanyActionType) -> Union[CompanyAction, None]:
+    def create(self, company_id: UUID, user_id: UUID, type: CompanyActionType) -> Union[CompanyAction, None]:
         action = CompanyAction(company_id=company_id, user_id=user_id, type=type)
         self.db.add(action)
-        try:
-            await self.db.commit()
-        except IntegrityError:
-            await self.db.rollback()
-            return None
-        await self.db.refresh(action)
         return action
 
     async def create_invintation(self, company_id: UUID, user_id: UUID) -> Union[CompanyAction, None]:
-        return await self.create(company_id, user_id, CompanyActionType.INVITATION)
+        invite = self.create(company_id, user_id, CompanyActionType.INVITATION)
+        await self.commit()
+        return invite
 
     async def create_request(self, company_id: UUID, user_id: UUID) -> Union[CompanyAction, None]:
-        return await self.create(company_id, user_id, CompanyActionType.REQUEST)
+        request = self.create(company_id, user_id, CompanyActionType.REQUEST)
+        await self.commit()
+        return request
 
     async def update(self, company_action: CompanyAction, new_type: CompanyActionType) -> CompanyAction:
         company_action.type = new_type

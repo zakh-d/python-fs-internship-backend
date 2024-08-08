@@ -81,7 +81,11 @@ class CompanyService:
         return CompanyDetailSchema.model_validate(company)
 
     async def create_company(self, company_data: CompanyCreateSchema, current_user: UserDetail) -> CompanySchema:
-        company = await self._company_repository.create_company(company_data, current_user.id)
+        async with self._company_repository.unit():
+            company = self._company_repository.create_company(company_data, current_user.id)
+            await self._company_repository.db.flush()
+            await self._company_repository.db.refresh(company)
+            self._company_action_repository.create(company.id, current_user.id, CompanyActionType.MEMBERSHIP)
         return CompanySchema.model_validate(company)
 
     async def update_company(
@@ -90,7 +94,8 @@ class CompanyService:
         company = await self._company_exists_and_user_has_permission(
             company_id, current_user, self._user_has_edit_permission
         )
-        company = await self._company_repository.update_company(company, company_data)
+        company = self._company_repository.update_company(company, company_data)
+        await self._company_repository.commit()
         return CompanyDetailSchema.model_validate(company)
 
     async def delete_company(self, company_id: UUID, current_user: UserDetail) -> None:

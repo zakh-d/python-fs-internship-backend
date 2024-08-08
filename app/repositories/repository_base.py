@@ -1,3 +1,4 @@
+import contextlib
 from typing import Annotated, TypeVar
 from uuid import UUID
 
@@ -38,3 +39,15 @@ class RepositoryBase:
 
     async def _delete_item_by_id(self, item_id: UUID, table: T) -> None:
         await self.db.execute(delete(table).where(table.id == item_id))
+
+    async def commit(self):
+        try:
+            await self.db.commit()
+        except Exception:
+            await self.db.rollback()
+            raise
+
+    @contextlib.asynccontextmanager
+    async def unit(self):
+        yield
+        await self.commit()
