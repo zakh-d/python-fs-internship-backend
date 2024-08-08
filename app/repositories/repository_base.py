@@ -1,4 +1,5 @@
 import contextlib
+from collections.abc import AsyncGenerator
 from typing import Annotated, TypeVar
 from uuid import UUID
 
@@ -40,7 +41,7 @@ class RepositoryBase:
     async def _delete_item_by_id(self, item_id: UUID, table: T) -> None:
         await self.db.execute(delete(table).where(table.id == item_id))
 
-    async def commit(self):
+    async def commit(self) -> None:
         try:
             await self.db.commit()
         except Exception:
@@ -48,6 +49,6 @@ class RepositoryBase:
             raise
 
     @contextlib.asynccontextmanager
-    async def unit(self):
+    async def unit(self) -> AsyncGenerator[None, None]:
         yield
         await self.commit()
