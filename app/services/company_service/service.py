@@ -12,6 +12,7 @@ from app.schemas.user_shema import UserDetail, UserList, UserSchema
 
 from .exceptions import (
     ActionNotFound,
+    CompanyActionException,
     CompanyNotFoundException,
     CompanyPermissionException,
     UserAlreadyInvitedException,
@@ -134,7 +135,6 @@ class CompanyService:
     async def get_company_members(
         self,
         company_id: UUID,
-        current_user: UserDetail,
     ) -> UserList:
         await self.check_company_exists(company_id)
         return await self._get_related_users_list(company_id, CompanyActionType.MEMBERSHIP)
@@ -155,3 +155,11 @@ class CompanyService:
     async def cancel_invite(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> None:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)
         await self._company_action_repository.delete(company_id, user_id, CompanyActionType.INVITATION)
+
+    async def remove_member(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> None:
+        company = await self._company_exists_and_user_has_permission(
+            company_id, current_user, self._user_has_edit_permission
+        )
+        if company.owner_id == user_id:
+            raise CompanyActionException('Owner cannot be removed from company')
+        await self._company_action_repository.delete(company_id, user_id, CompanyActionType.MEMBERSHIP)

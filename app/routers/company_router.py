@@ -133,10 +133,19 @@ async def reject_request(
     return await company_service.reject_request(company_id, user_id, current_user)
 
 
-@router.get('/{company_id}/members/')
+@router.get('/{company_id}/members/', dependencies=[Depends(get_current_user)])
 async def get_company_members(
     company_id: UUID,
     company_service: Annotated[CompanyService, Depends(CompanyService)],
-    current_user: Annotated[UserDetail, Depends(get_current_user)],  # requires authentication
 ) -> UserList:
-    return await company_service.get_company_members(company_id, current_user)
+    return await company_service.get_company_members(company_id)
+
+
+@router.delete('/{company_id}/members/{user_id}')
+async def remove_member(
+    company_id: UUID,
+    user_id: UUID,
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+    company_service: Annotated[CompanyService, Depends(CompanyService)],
+) -> None:
+    return await company_service.remove_member(company_id, user_id, current_user)
