@@ -43,9 +43,8 @@ Just run prepared script
 
 ```mermaid
 erDiagram
-    USER ||--o{ COMPANY_ACTION: being_invited_or_requests
+    USER ||--o{ COMPANY_ACTION: relates
     USER ||--o{ COMPANY: owns
-    USER ||--o{ MEMBERSHIP: is_member_of
     USER {
         uuid id
         varchar email
@@ -54,8 +53,7 @@ erDiagram
         varchar last_name
     }
 
-    COMPANY ||--o{ COMPANY_ACTION: intives_or_being_requested
-    COMPANY ||--o{ MEMBERSHIP: has_members
+    COMPANY ||--o{ COMPANY_ACTION: relates
     COMPANY {
         uuid id
         uuid owner_id
@@ -66,11 +64,6 @@ erDiagram
         uuid id
         uuid company_id
         uuid user_id
-        enum status
         enum type
-    }
-    MEMBERSHIP {
-        uuid company_id
-        uuid user_id
     }
 ```
