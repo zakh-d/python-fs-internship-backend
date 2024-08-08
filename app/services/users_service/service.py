@@ -135,3 +135,16 @@ class UserService:
 
     async def cancel_request(self, user_id: UUID, company_id: UUID) -> None:
         await self._company_action_repository.delete(company_id, user_id, CompanyActionType.REQUEST)
+
+    async def get_user_companies(self, user_id: UUID) -> CompanyListSchema:
+        companies = await self._company_action_repository.get_companies_related_to_user(
+            user_id, CompanyActionType.MEMBERSHIP
+        )
+        for company in companies:
+            company.owner = await company.awaitable_attrs.owner
+        return CompanyListSchema(
+            companies=[CompanySchema.model_validate(company) for company in companies], total_count=len(companies)
+        )
+
+    async def leave_company(self, user_id: UUID, company_id: UUID) -> None:
+        await self._company_action_repository.delete(company_id, user_id, CompanyActionType.INVITATION)

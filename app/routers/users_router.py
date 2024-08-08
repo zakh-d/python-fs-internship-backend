@@ -16,6 +16,7 @@ from app.schemas.user_shema import (
 )
 from app.services import UserService
 from app.services.authentication_service.service import AuthenticationService
+from app.services.company_service.exceptions import CompanyActionException
 from app.services.company_service.service import CompanyService
 from app.utils.permissions import only_user_itself
 
@@ -137,3 +138,24 @@ async def cancel_request_to_join_company(
 ) -> None:
     await company_service.check_company_exists(company_id)
     await user_service.cancel_request(user_id, company_id)
+
+
+@router.get('{user_id}/companies/', dependencies=[Depends(only_user_itself)])
+async def get_user_companies(
+    user_id: UUID,
+    user_service: Annotated[UserService, Depends(UserService)],
+) -> CompanyListSchema:
+    return await user_service.get_user_companies(user_id)
+
+
+@router.delete('{user_id}/companies/{company_id}', dependencies=[Depends(only_user_itself)])
+async def leave_company(
+    user_id: UUID,
+    company_id: UUID,
+    user_service: Annotated[UserService, Depends(UserService)],
+    company_service: Annotated[CompanyService, Depends(CompanyService)],
+) -> CompanyListSchema:
+    company = await company_service.check_company_exists(company_id)
+    if company.owner_id == user_id:
+        raise CompanyActionException('Owner cannot leave company')
+    return await user_service.leave_company(user_id, company_id)
