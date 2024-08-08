@@ -7,7 +7,7 @@ from app.db.models import Company, CompanyActionType
 from app.repositories.company_action_repository import CompanyActionRepository
 from app.repositories.company_repository import CompanyRepository
 from app.schemas.company_action_schema import CompanyActionSchema
-from app.schemas.company_schema import CompanyCreateSchema, CompanyListSchema, CompanySchema
+from app.schemas.company_schema import CompanyCreateSchema, CompanyDetailSchema, CompanyListSchema, CompanySchema
 from app.schemas.user_shema import UserDetail, UserList, UserSchema
 
 from .exceptions import (
@@ -71,12 +71,14 @@ class CompanyService:
             companies=[CompanySchema.model_validate(company) for company in companies], total_count=count
         )
 
-    async def get_company_by_id(self, company_id: UUID) -> CompanySchema:
+    async def get_company_by_id(self, company_id: UUID, current_user: UserDetail) -> CompanyDetailSchema:
         company = await self._company_repository.get_company_by_id(company_id)
         if not company:
             raise CompanyNotFoundException(company_id)
+        if company.hidden and company.owner_id != current_user.id:
+            raise CompanyNotFoundException(company_id)
         company.owner = await company.awaitable_attrs.owner
-        return CompanySchema.model_validate(company)
+        return CompanyDetailSchema.model_validate(company)
 
     async def create_company(self, company_data: CompanyCreateSchema, current_user: UserDetail) -> CompanySchema:
         company = await self._company_repository.create_company(company_data, current_user.id)
@@ -84,12 +86,12 @@ class CompanyService:
 
     async def update_company(
         self, company_id: UUID, company_data: CompanyCreateSchema, current_user: UserDetail
-    ) -> CompanySchema:
+    ) -> CompanyDetailSchema:
         company = await self._company_exists_and_user_has_permission(
             company_id, current_user, self._user_has_edit_permission
         )
         company = await self._company_repository.update_company(company, company_data)
-        return CompanySchema.model_validate(company)
+        return CompanyDetailSchema.model_validate(company)
 
     async def delete_company(self, company_id: UUID, current_user: UserDetail) -> None:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_delete_permission)

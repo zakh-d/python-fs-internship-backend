@@ -15,6 +15,10 @@ class CompanySchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CompanyDetailSchema(CompanySchema):
+    hidden: bool
+
+
 class CompanyListSchema(BaseModel):
     companies: list[CompanySchema]
     total_count: int
