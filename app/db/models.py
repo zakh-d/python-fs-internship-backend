@@ -78,3 +78,11 @@ class CompanyAction(ModelWithIdAndTimeStamps):
 
     company: Mapped[Company] = relationship(back_populates='company_actions')
     user: Mapped[User] = relationship(back_populates='company_actions')
+
+
+class AdminRole(Base):
+    __tablename__ = 'admin_roles'
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    company_id: Mapped[UUID] = mapped_column(ForeignKey('companies.id', ondelete='CASCADE'))
+    user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'))
