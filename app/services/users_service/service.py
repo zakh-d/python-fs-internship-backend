@@ -10,6 +10,7 @@ from app.repositories import CompanyActionRepository, UserRepository
 from app.schemas.company_action_schema import CompanyActionSchema
 from app.schemas.company_schema import CompanyListSchema, CompanySchema
 from app.schemas.user_shema import UserDetail, UserList, UserSchema, UserSignUpSchema, UserUpdateSchema
+from app.services.company_service.exceptions import ActionNotFound, UserAlreadyInvitedException
 from app.services.users_service.exceptions import (
     InvalidPasswordException,
     UserAlreadyExistsException,
@@ -109,7 +110,7 @@ class UserService:
             company_id, user_id, CompanyActionType.INVITATION
         )
         if invitation is None:
-            raise Exception  # TODO: create custom exception
+            raise ActionNotFound(CompanyActionType.INVITATION)
         await self._company_action_repository.update(invitation, CompanyActionType.MEMBERSHIP)
 
     async def reject_invitation(self, user_id: UUID, company_id: UUID) -> None:
@@ -126,10 +127,10 @@ class UserService:
         )
 
     async def send_request(self, user_id: UUID, company_id: UUID) -> CompanyActionSchema:
-        request = await self._company_action_repository.create(company_id, user_id, CompanyActionType.REQUEST)
+        request = await self._company_action_repository.create_request(company_id, user_id)
 
         if request is None:
-            raise Exception  # TODO: change to custom exceptions
+            raise UserAlreadyInvitedException(user_id=user_id, company_id=company_id)
 
         return CompanyActionSchema.model_validate(request)
 

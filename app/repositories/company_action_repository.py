@@ -54,13 +54,19 @@ class CompanyActionRepository(RepositoryBase):
 
     async def create_invintation(self, company_id: UUID, user_id: UUID) -> Union[CompanyAction, None]:
         invite = self.create(company_id, user_id, CompanyActionType.INVITATION)
-        await self.commit()
-        return invite
+        try:
+            await self.commit()
+            return invite
+        except Exception:
+            return None
 
     async def create_request(self, company_id: UUID, user_id: UUID) -> Union[CompanyAction, None]:
         request = self.create(company_id, user_id, CompanyActionType.REQUEST)
-        await self.commit()
-        return request
+        try:
+            await self.commit()
+            return request
+        except Exception:
+            return None
 
     async def update(self, company_action: CompanyAction, new_type: CompanyActionType) -> CompanyAction:
         company_action.type = new_type
