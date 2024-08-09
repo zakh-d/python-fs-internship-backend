@@ -131,7 +131,7 @@ async def test_not_owner_cannot_edit_company(
 
     assert response.status_code == 403
 
-    company_repo.db.refresh(company)
+    await company_repo.db.refresh(company)
     assert company.name == 'Company1'
 
 

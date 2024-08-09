@@ -105,6 +105,7 @@ class CompanyService:
         )
         company = self._company_repository.update_company(company, company_data)
         await self._company_repository.commit()
+        company.owner = await company.awaitable_attrs.owner
         return CompanyDetailSchema.model_validate(company)
 
     async def delete_company(self, company_id: UUID, current_user: UserDetail) -> None:
