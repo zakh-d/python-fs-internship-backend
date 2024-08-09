@@ -72,7 +72,6 @@ class CompanyAction(ModelWithIdAndTimeStamps):
 
     company_id: Mapped[UUID] = mapped_column(ForeignKey('companies.id', ondelete='CASCADE'))
     user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'))
-    pending: Mapped[bool] = mapped_column(default=True)
     type: Mapped[CompanyActionType]
 
     __table_args__ = (UniqueConstraint('company_id', 'user_id', name='unique_company_user'),)
