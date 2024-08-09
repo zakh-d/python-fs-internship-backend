@@ -284,6 +284,13 @@ def test_user_delete_unauthorized_401(
     assert response.status_code == 401
 
 
+def test_user_delete_unauthorized_401(
+        client: TestClient
+):
+    response = client.delete(f'/users/{uuid4()}')
+    assert response.status_code == 401
+
+
 @pytest.mark.asyncio
 async def test_user_sign_in(
     user_repo: UserRepository,
