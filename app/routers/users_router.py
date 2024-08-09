@@ -79,7 +79,7 @@ async def sign_in(
     return {'access_token': token}
 
 
-@router.get('{user_id}/invites/', dependencies=[Depends(only_user_itself)])
+@router.get('/{user_id}/invites/', dependencies=[Depends(only_user_itself)])
 async def get_invites_for_user(
     user_id: UUID,
     user_service: Annotated[UserService, Depends(UserService)],
@@ -87,7 +87,7 @@ async def get_invites_for_user(
     return await user_service.get_user_invites(user_id)
 
 
-@router.post('{user_id}/invites/{company_id}', dependencies=[Depends(only_user_itself)])
+@router.post('/{user_id}/invites/{company_id}', dependencies=[Depends(only_user_itself)])
 async def accept_invite_to_company(
     user_id: UUID,
     company_id: UUID,
@@ -98,7 +98,7 @@ async def accept_invite_to_company(
     await user_service.accept_invitation(user_id, company_id)
 
 
-@router.delete('{user_id}/invites/{company_id}', dependencies=[Depends(only_user_itself)])
+@router.delete('/{user_id}/invites/{company_id}', dependencies=[Depends(only_user_itself)])
 async def reject_invite_to_company(
     user_id: UUID,
     company_id: UUID,
@@ -109,7 +109,7 @@ async def reject_invite_to_company(
     await user_service.reject_invitation(user_id, company_id)
 
 
-@router.get('{user_id}/requests/', dependencies=[Depends(only_user_itself)])
+@router.get('/{user_id}/requests/', dependencies=[Depends(only_user_itself)])
 async def get_user_requests(
     user_id: UUID,
     user_service: Annotated[UserService, Depends(UserService)],
@@ -117,7 +117,7 @@ async def get_user_requests(
     return await user_service.get_user_requests(user_id)
 
 
-@router.post('{user_id}/requests/{company_id}', dependencies=[Depends(only_user_itself)])
+@router.post('/{user_id}/requests/{company_id}', dependencies=[Depends(only_user_itself)])
 async def request_to_join_company(
     user_id: UUID,
     company_id: UUID,
@@ -129,7 +129,7 @@ async def request_to_join_company(
     return request
 
 
-@router.delete('{user_id}/requests/{company_id}', dependencies=[Depends(only_user_itself)])
+@router.delete('/{user_id}/requests/{company_id}', dependencies=[Depends(only_user_itself)])
 async def cancel_request_to_join_company(
     user_id: UUID,
     company_id: UUID,
@@ -140,7 +140,7 @@ async def cancel_request_to_join_company(
     await user_service.cancel_request(user_id, company_id)
 
 
-@router.get('{user_id}/companies/', dependencies=[Depends(only_user_itself)])
+@router.get('/{user_id}/companies/', dependencies=[Depends(only_user_itself)])
 async def get_user_companies(
     user_id: UUID,
     user_service: Annotated[UserService, Depends(UserService)],
@@ -148,7 +148,7 @@ async def get_user_companies(
     return await user_service.get_user_companies(user_id)
 
 
-@router.delete('{user_id}/companies/{company_id}', dependencies=[Depends(only_user_itself)])
+@router.delete('/{user_id}/companies/{company_id}', dependencies=[Depends(only_user_itself)])
 async def leave_company(
     user_id: UUID,
     company_id: UUID,

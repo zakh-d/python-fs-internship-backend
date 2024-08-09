@@ -49,7 +49,7 @@ class CompanyService:
         if company is None:
             raise CompanyNotFoundException(company_id)
         return company
-    
+
     async def check_company_exists_and_is_public(self, company_id: UUID) -> Company:
         company = await self.check_company_exists(company_id)
         if company.hidden:
@@ -95,7 +95,6 @@ class CompanyService:
             self._company_action_repository.create(company.id, current_user.id, CompanyActionType.MEMBERSHIP)
             company.owner = await company.awaitable_attrs.owner
             return CompanySchema.model_validate(company)
-
 
     async def update_company(
         self, company_id: UUID, company_data: CompanyCreateSchema, current_user: UserDetail
