@@ -93,7 +93,9 @@ class CompanyService:
             await self._company_repository.db.flush()
             await self._company_repository.db.refresh(company)
             self._company_action_repository.create(company.id, current_user.id, CompanyActionType.MEMBERSHIP)
-        return CompanySchema.model_validate(company)
+            company.owner = await company.awaitable_attrs.owner
+            return CompanySchema.model_validate(company)
+
 
     async def update_company(
         self, company_id: UUID, company_data: CompanyCreateSchema, current_user: UserDetail

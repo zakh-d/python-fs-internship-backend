@@ -8,9 +8,11 @@ from app.core.security import get_current_user
 from app.main import app
 from app.db.db import async_session
 from app.repositories import UserRepository
+from app.repositories.company_action_repository import CompanyActionRepository
 from app.repositories.company_repository import CompanyRepository
 from app.schemas.user_shema import UserSchema
 from app.services.authentication_service.service import AuthenticationService
+from app.services.company_service.service import CompanyService
 from app.services.users_service import UserService
 
 
@@ -78,5 +80,15 @@ async def access_token(
 
 
 @pytest.fixture
-def company_repo(get_db):
+def company_repo(get_db) -> CompanyRepository:
     return CompanyRepository(get_db)
+
+
+@pytest.fixture
+def company_action_repo(get_db) -> CompanyActionRepository:
+    return CompanyActionRepository(get_db)
+
+
+@pytest.fixture
+def company_service(company_repo, company_action_repo) -> CompanyService:
+    return CompanyService(company_repository=company_repo, company_action_repository=company_action_repo)
