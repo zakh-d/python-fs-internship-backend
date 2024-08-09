@@ -49,6 +49,12 @@ class CompanyService:
         if company is None:
             raise CompanyNotFoundException(company_id)
         return company
+    
+    async def check_company_exists_and_is_public(self, company_id: UUID) -> Company:
+        company = await self.check_company_exists(company_id)
+        if company.hidden:
+            raise CompanyNotFoundException(company_id)
+        return company
 
     async def get_all_companies(self, page: int, limit: int) -> CompanyListSchema:
         offset = (page - 1) * limit

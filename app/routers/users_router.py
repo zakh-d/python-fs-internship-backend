@@ -124,7 +124,7 @@ async def request_to_join_company(
     user_service: Annotated[UserService, Depends(UserService)],
     company_service: Annotated[CompanyService, Depends(CompanyService)],
 ) -> CompanyActionSchema:
-    await company_service.check_company_exists(company_id)
+    await company_service.check_company_exists_and_is_public(company_id)
     request = await user_service.send_request(user_id, company_id)
     return request
 
