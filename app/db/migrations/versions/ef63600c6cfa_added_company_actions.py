@@ -24,7 +24,6 @@ def upgrade() -> None:
         'company_actions',
         sa.Column('company_id', sa.Uuid(), nullable=False),
         sa.Column('user_id', sa.Uuid(), nullable=False),
-        sa.Column('pending', sa.Boolean(), nullable=False),
         sa.Column('type', sa.Enum('INVITATION', 'REQUEST', 'MEMBERSHIP', name='companyactiontype'), nullable=False),
         sa.Column('id', sa.Uuid(), nullable=False),
         sa.Column('created_at', sa.DateTime(), server_default='now()', nullable=False),

@@ -11,7 +11,6 @@ class CompanyActionCreateSchema(BaseModel):
 
 
 class CompanyActionSchema(CompanyActionCreateSchema):
-    pending: bool
     type: CompanyActionType
 
     model_config = ConfigDict(from_attributes=True)
