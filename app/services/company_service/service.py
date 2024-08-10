@@ -148,7 +148,11 @@ class CompanyService:
         company_id: UUID,
     ) -> UserList:
         await self.check_company_exists(company_id)
-        return await self._get_related_users_list(company_id, CompanyActionType.MEMBERSHIP)
+        members = await self._get_related_users_list(company_id, CompanyActionType.MEMBERSHIP)
+        admins = await self._get_related_users_list(company_id, CompanyActionType.ADMIN)
+        members.users.extend(admins.users)
+        members.total_count += admins.total_count
+        return members
 
     async def accept_request(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> CompanyActionSchema:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)

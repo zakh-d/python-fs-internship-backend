@@ -205,3 +205,29 @@ async def test_removing_from_admins_downgrades_to_member(
     membership = await company_action_repo.get_company_action_by_company_and_user(company.id, user.id, CompanyActionType.MEMBERSHIP)
 
     assert membership is not None
+
+
+@pytest.mark.asyncio
+async def test_admin_is_on_members_list(
+    client: TestClient,
+    company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
+    company_action_repo: CompanyActionRepository,
+    auth_service: AuthenticationService
+):
+    company, owner, user = company_and_users
+    company_action_repo.create(company.id, user.id, CompanyActionType.ADMIN)
+    await company_action_repo.commit()
+
+    response = client.get(f'/companies/{company.id}/members/', headers={
+        'Authorization': f'Bearer {auth_service.generate_jwt_token(owner)}'
+    })
+
+    assert response.status_code == 200
+
+    assert response.json()['total_count'] == 2
+    
+    members = response.json()['users']
+
+    members_ids = [member['id'] for member in members]
+
+    assert str(user.id) in members_ids
