@@ -178,6 +178,7 @@ class CompanyService:
         if company.owner_id == user_id:
             raise CompanyActionException('Owner cannot be removed from company')
         await self._company_action_repository.delete(company_id, user_id, CompanyActionType.MEMBERSHIP)
+        await self._company_action_repository.delete(company_id, user_id, CompanyActionType.ADMIN)
 
     async def get_admin_list(
         self,
