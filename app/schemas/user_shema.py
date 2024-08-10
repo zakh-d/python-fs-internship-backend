@@ -59,3 +59,7 @@ class UserDetail(UserSchema):
 class UserList(BaseModel):
     users: list[UserSchema] = []
     total_count: int
+
+
+class UserIdSchema(BaseModel):
+    user_id: UUID

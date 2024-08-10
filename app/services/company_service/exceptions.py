@@ -31,6 +31,8 @@ class ActionNotFound(HTTPException):
             message = 'Invitation either not found, accepted or canceled'
         elif type == CompanyActionType.REQUEST:
             message = 'Request either not found, accepted or canceled'
+        elif type == CompanyActionType.ADMIN:
+            message = 'User is not an admin of this company'
         else:
             message = 'User is not a member of this company'
         super().__init__(status.HTTP_404_NOT_FOUND, message)
