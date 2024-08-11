@@ -43,7 +43,9 @@ def test_cannot_invite_owner(
 ):
     company, owner, _ = company_and_users
     token = auth_service.generate_jwt_token(owner)
-    response = client.post(f'/companies/{company.id}/invites/{owner.id}', json={}, headers={
+    response = client.post(f'/companies/{company.id}/invites/', json={
+        'email': owner.email
+    }, headers={
         'Authorization': f'Bearer {token}'
     })
     assert response.status_code == 400
@@ -57,13 +59,17 @@ def test_cannot_invite_invited_user(
     company, owner, user = company_and_users
     token = auth_service.generate_jwt_token(owner)
 
-    response = client.post(f'/companies/{company.id}/invites/{user.id}', json={}, headers={
+    response = client.post(f'/companies/{company.id}/invites/', json={
+        'email': user.email
+    }, headers={
         'Authorization': f'Bearer {token}'
     })
 
     assert response.status_code == 200
 
-    response = client.post(f'/companies/{company.id}/invites/{user.id}', json={}, headers={
+    response = client.post(f'/companies/{company.id}/invites/', json={
+        'email': user.email
+    }, headers={
         'Authorization': f'Bearer {token}'
     })
 
@@ -120,7 +126,9 @@ def test_owner_can_invite_user(
     auth_service: AuthenticationService
 ):
     company, owner, user = company_and_users
-    response = client.post(f'/companies/{company.id}/invites/{user.id}', json={}, headers={
+    response = client.post(f'/companies/{company.id}/invites/', json={
+        'email': user.email
+    }, headers={
         'Authorization': f'Bearer {auth_service.generate_jwt_token(owner)}'
     })
 
