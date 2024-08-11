@@ -85,3 +85,4 @@ class CompanyActionRepository(RepositoryBase):
                 )
             )
         )
+        await self.db.commit()
