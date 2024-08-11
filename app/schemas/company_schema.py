@@ -19,6 +19,10 @@ class CompanyDetailSchema(CompanySchema):
     hidden: bool
 
 
+class CompanyDetailWithIsMemberSchema(CompanyDetailSchema):
+    is_member: bool
+
+
 class CompanyListSchema(BaseModel):
     companies: list[CompanySchema]
     total_count: int

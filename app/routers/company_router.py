@@ -8,6 +8,7 @@ from app.schemas.company_action_schema import CompanyActionSchema
 from app.schemas.company_schema import (
     CompanyCreateSchema,
     CompanyDetailSchema,
+    CompanyDetailWithIsMemberSchema,
     CompanyListSchema,
     CompanySchema,
     CompanyUpdateSchema,
@@ -44,7 +45,7 @@ async def get_company_by_id(
     company_id: UUID,
     company_service: Annotated[CompanyService, Depends(CompanyService)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],  # requires authentication
-) -> CompanyDetailSchema:
+) -> CompanyDetailWithIsMemberSchema:
     return await company_service.get_company_by_id(company_id, current_user)
 
 
