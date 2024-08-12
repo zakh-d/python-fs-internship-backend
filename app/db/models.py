@@ -1,15 +1,18 @@
+import enum
 from datetime import datetime
 from typing import ClassVar
 from uuid import UUID, uuid4
 
-from sqlalchemy import TIMESTAMP, Boolean, ForeignKey, String, Uuid
+from sqlalchemy import TIMESTAMP, Boolean, ForeignKey, String, UniqueConstraint, Uuid
 from sqlalchemy.ext.asyncio import AsyncAttrs
-from sqlalchemy.orm import Mapped, declarative_base, mapped_column, relationship
-
-Base = declarative_base()
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
-class ModelBase(AsyncAttrs, Base):
+class Base(DeclarativeBase):
+    pass
+
+
+class ModelWithIdAndTimeStamps(AsyncAttrs, Base):
     """Base class for all models containing UUID as primary key."""
 
     __abstract__ = True
@@ -26,7 +29,7 @@ class ModelBase(AsyncAttrs, Base):
     updated_at: Mapped[datetime] = mapped_column(server_default='now()', onupdate=datetime.now)
 
 
-class User(ModelBase):
+class User(ModelWithIdAndTimeStamps):
     __tablename__ = 'users'
 
     username: Mapped[str] = mapped_column(String(50), index=True)
@@ -40,11 +43,13 @@ class User(ModelBase):
         'Company', back_populates='owner', cascade='all, delete-orphan', passive_deletes=True
     )
 
+    company_actions: Mapped[list['CompanyAction']] = relationship(back_populates='user')
+
     def __repr__(self) -> str:
         return f'<User {self.username}>'
 
 
-class Company(ModelBase):
+class Company(ModelWithIdAndTimeStamps):
     __tablename__ = 'companies'
 
     name: Mapped[str] = mapped_column(String(50), index=True)
@@ -53,3 +58,23 @@ class Company(ModelBase):
     owner_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'))
 
     owner: Mapped[User] = relationship(back_populates='companies')
+    company_actions: Mapped[list['CompanyAction']] = relationship(back_populates='company')
+
+
+class CompanyActionType(enum.Enum):
+    INVITATION = 'invitation'
+    REQUEST = 'request'
+    MEMBERSHIP = 'membership'
+
+
+class CompanyAction(ModelWithIdAndTimeStamps):
+    __tablename__ = 'company_actions'
+
+    company_id: Mapped[UUID] = mapped_column(ForeignKey('companies.id', ondelete='CASCADE'))
+    user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'))
+    type: Mapped[CompanyActionType]
+
+    __table_args__ = (UniqueConstraint('company_id', 'user_id', name='unique_company_user'),)
+
+    company: Mapped[Company] = relationship(back_populates='company_actions')
+    user: Mapped[User] = relationship(back_populates='company_actions')

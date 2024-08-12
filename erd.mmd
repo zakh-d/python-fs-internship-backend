@@ -1,0 +1,24 @@
+erDiagram
+    USER ||--o{ COMPANY_ACTION: relates
+    USER ||--o{ COMPANY: owns
+    USER {
+        uuid id
+        varchar email
+        varchar username
+        varchar first_name
+        varchar last_name
+    }
+
+    COMPANY ||--o{ COMPANY_ACTION: relates
+    COMPANY {
+        uuid id
+        uuid owner_id
+        varchar name
+        varchar description
+    }
+    COMPANY_ACTION {
+        uuid id
+        uuid company_id
+        uuid user_id
+        enum type
+    }

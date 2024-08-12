@@ -31,11 +31,12 @@ async def test_get_company_by_id_endpoint(
     test_user: UserSchema,
     company_repo: CompanyRepository,
 ):
-    company = await company_repo.create_company(CompanyCreateSchema(
+    company = company_repo.create_company(CompanyCreateSchema(
         name='Test Company',
         description='Test Company Description',
         hidden=False
     ), test_user.id)
+    await company_repo.commit()
 
     response = client.get('/companies/' + str(company.id), headers={'Authorization': f'Bearer {access_token}'})
     assert response.status_code == 200
@@ -78,11 +79,12 @@ async def test_update_company_endpoint(
     test_user: UserSchema,
     company_repo: CompanyRepository
 ):
-    company = await company_repo.create_company(CompanyCreateSchema(
+    company = company_repo.create_company(CompanyCreateSchema(
         name='Test',
         description='Test',
         hidden=False
     ), test_user.id)
+    await company_repo.commit()
 
     response = client.put(f'/companies/{company.id}', json={
         'name': 'Test1'
@@ -111,7 +113,7 @@ async def test_not_owner_cannot_edit_company(
     )
     await user_repo.commit_me(user)
 
-    company = await company_repo.create_company(
+    company = company_repo.create_company(
         CompanyCreateSchema(
             name='Company1',
             description='Test',
@@ -119,6 +121,7 @@ async def test_not_owner_cannot_edit_company(
         ),
         user.id
     )
+    await company_repo.commit()
 
     response = client.put(f'/companies/{company.id}', json={
         'name': 'Company2'
@@ -128,7 +131,7 @@ async def test_not_owner_cannot_edit_company(
 
     assert response.status_code == 403
 
-    company_repo.db.refresh(company)
+    await company_repo.db.refresh(company)
     assert company.name == 'Company1'
 
 
@@ -139,7 +142,7 @@ async def test_delete_company(
     test_user: UserSchema,
     access_token: str
 ):
-    company = await company_repo.create_company(
+    company = company_repo.create_company(
         CompanyCreateSchema(
             name='Company1',
             description='Test',
@@ -147,6 +150,7 @@ async def test_delete_company(
         ),
         test_user.id
     )
+    await company_repo.commit()
     company_count = await company_repo.get_companies_count()
     assert company_count == 1
 
@@ -175,7 +179,7 @@ async def test_not_owner_cannot_delete_company(
     )
     await user_repo.commit_me(user)
 
-    company = await company_repo.create_company(
+    company = company_repo.create_company(
         CompanyCreateSchema(
             name='Company1',
             description='Test',
@@ -183,6 +187,7 @@ async def test_not_owner_cannot_delete_company(
         ),
         user.id
     )
+    await company_repo.commit()
 
     company_count = await company_repo.get_companies_count()
     assert company_count == 1

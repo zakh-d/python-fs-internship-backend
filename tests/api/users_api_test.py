@@ -241,13 +241,14 @@ async def test_user_update_invalid_password(
 
 def test_update_very_long_password_rejects(
         client: TestClient,
-        fake_authentication: None
+        test_user: UserSchema,
+        access_token: str
 ):
     very_long_password = 'abc' * 1000
-    response = client.put(f'/users/{uuid4()}', json={
+    response = client.put(f'/users/{test_user.id}', json={
         'first_name': 'Robert',
         'password': very_long_password
-    })
+    }, headers={'Authorization': f'Bearer {access_token}'})
 
     assert response.status_code == 422
 
