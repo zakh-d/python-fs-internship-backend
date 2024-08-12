@@ -7,7 +7,13 @@ from app.db.models import Company, CompanyActionType
 from app.repositories.company_action_repository import CompanyActionRepository
 from app.repositories.company_repository import CompanyRepository
 from app.schemas.company_action_schema import CompanyActionSchema
-from app.schemas.company_schema import CompanyCreateSchema, CompanyDetailSchema, CompanyListSchema, CompanySchema
+from app.schemas.company_schema import (
+    CompanyCreateSchema,
+    CompanyDetailSchema,
+    CompanyDetailWithIsMemberSchema,
+    CompanyListSchema,
+    CompanySchema,
+)
 from app.schemas.user_shema import UserDetail, UserList, UserSchema
 
 from .exceptions import (
@@ -81,14 +87,27 @@ class CompanyService:
             companies=[CompanySchema.model_validate(company) for company in companies], total_count=count
         )
 
-    async def get_company_by_id(self, company_id: UUID, current_user: UserDetail) -> CompanyDetailSchema:
+    async def get_company_by_id(self, company_id: UUID, current_user: UserDetail) -> CompanyDetailWithIsMemberSchema:
         company = await self._company_repository.get_company_by_id(company_id)
         if not company:
             raise CompanyNotFoundException(company_id)
         if company.hidden and company.owner_id != current_user.id:
             raise CompanyNotFoundException(company_id)
         company.owner = await company.awaitable_attrs.owner
-        return CompanyDetailSchema.model_validate(company)
+        membership = await self._company_action_repository.get_by_company_and_user(
+            company_id=company_id, user_id=current_user.id
+        )
+        status = 'yes'
+        if membership is None:
+            status = 'no'
+        elif membership.type == CompanyActionType.REQUEST:
+            status = 'pending_request'
+        elif membership.type == CompanyActionType.INVITATION:
+            status = 'pending_invite'
+        company_detail_with_is_member = CompanyDetailWithIsMemberSchema(
+            **CompanyDetailSchema.model_validate(company).dict(), is_member=status
+        )
+        return company_detail_with_is_member
 
     async def create_company(self, company_data: CompanyCreateSchema, current_user: UserDetail) -> CompanySchema:
         async with self._company_repository.unit():
@@ -156,7 +175,7 @@ class CompanyService:
 
     async def accept_request(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> CompanyActionSchema:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)
-        request = await self._company_action_repository.get_company_action_by_company_and_user(
+        request = await self._company_action_repository.get_by_company_user_and_type(
             company_id, user_id, CompanyActionType.REQUEST
         )
         if not request:
@@ -195,7 +214,7 @@ class CompanyService:
         )
         if company.owner_id == user_id:
             raise CompanyActionException('Cannot assign owner as an admin')
-        membership = await self._company_action_repository.get_company_action_by_company_and_user(
+        membership = await self._company_action_repository.get_by_company_user_and_type(
             company_id, user_id, CompanyActionType.MEMBERSHIP
         )
         if not membership:
@@ -206,7 +225,7 @@ class CompanyService:
 
     async def remove_admin(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> None:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_is_company_owner)
-        admin_role = await self._company_action_repository.get_company_action_by_company_and_user(
+        admin_role = await self._company_action_repository.get_by_company_user_and_type(
             company_id, user_id, CompanyActionType.ADMIN
         )
         if not admin_role:

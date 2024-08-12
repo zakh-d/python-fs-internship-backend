@@ -62,6 +62,12 @@ class UserService:
             raise UserNotFoundException('id', user_id)
         return UserDetail.model_validate(user)
 
+    async def get_user_by_email(self, email: str) -> UserDetail:
+        user = await self._user_repository.get_user_by_email(email)
+        if not user:
+            raise UserNotFoundException('email', email)
+        return UserDetail.model_validate(user)
+
     async def update_user(self, user_id: UUID, user_data: UserUpdateSchema) -> UserDetail:
         user = await self._user_repository.get_user_by_id(user_id)
         if not user:
@@ -106,7 +112,7 @@ class UserService:
         )
 
     async def accept_invitation(self, user_id: UUID, company_id: UUID) -> None:
-        invitation = await self._company_action_repository.get_company_action_by_company_and_user(
+        invitation = await self._company_action_repository.get_by_company_user_and_type(
             company_id, user_id, CompanyActionType.INVITATION
         )
         if invitation is None:

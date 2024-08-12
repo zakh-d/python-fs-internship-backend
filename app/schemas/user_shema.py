@@ -63,3 +63,7 @@ class UserList(BaseModel):
 
 class UserIdSchema(BaseModel):
     user_id: UUID
+
+
+class UserEmailSchema(BaseModel):
+    email: Annotated[EmailStr, Field(max_length=49)]
