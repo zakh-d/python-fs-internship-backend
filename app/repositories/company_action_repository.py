@@ -38,11 +38,18 @@ class CompanyActionRepository(RepositoryBase):
         result = await self.db.execute(query)
         return result.scalars().all()
 
-    async def get_company_action_by_company_and_user(
+    async def get_by_company_user_and_type(
         self, company_id: UUID, user_id: UUID, _type: CompanyActionType
     ) -> Union[CompanyAction, None]:
         query = select(CompanyAction).where(
             and_(CompanyAction.company_id == company_id, CompanyAction.user_id == user_id, CompanyAction.type == _type)
+        )
+        result = await self.db.execute(query)
+        return result.scalars().first()
+    
+    async def get_by_company_and_user(self, company_id: UUID, user_id: UUID) -> CompanyAction:
+        query = select(CompanyAction).where(
+            and_(CompanyAction.company_id == company_id, CompanyAction.user_id == user_id)
         )
         result = await self.db.execute(query)
         return result.scalars().first()

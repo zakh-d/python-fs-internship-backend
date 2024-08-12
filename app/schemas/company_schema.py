@@ -1,4 +1,4 @@
-from typing import Annotated, Optional
+from typing import Annotated, Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -20,7 +20,7 @@ class CompanyDetailSchema(CompanySchema):
 
 
 class CompanyDetailWithIsMemberSchema(CompanyDetailSchema):
-    is_member: bool
+    is_member: Literal['yes', 'no', 'pending_request', 'pending_invite']
 
 
 class CompanyListSchema(BaseModel):

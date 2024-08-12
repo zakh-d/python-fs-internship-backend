@@ -91,11 +91,18 @@ class CompanyService:
         if company.hidden and company.owner_id != current_user.id:
             raise CompanyNotFoundException(company_id)
         company.owner = await company.awaitable_attrs.owner
-        membership = await self._company_action_repository.get_company_action_by_company_and_user(
-            company_id=company_id, user_id=current_user.id, _type=CompanyActionType.MEMBERSHIP
+        membership = await self._company_action_repository.get_by_company_and_user(
+            company_id=company_id, user_id=current_user.id
         )
+        status = 'yes'
+        if membership is None:
+            status = 'no'
+        elif membership.type == CompanyActionType.REQUEST:
+            status = 'pending_request'
+        elif membership.type == CompanyActionType.INVITATION:
+            status = 'pending_invite'
         company_detail_with_is_member = CompanyDetailWithIsMemberSchema(
-            **CompanyDetailSchema.model_validate(company).dict(), is_member=membership is not None
+            **CompanyDetailSchema.model_validate(company).dict(), is_member=status
         )
         return company_detail_with_is_member
 
@@ -161,7 +168,7 @@ class CompanyService:
 
     async def accept_request(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> CompanyActionSchema:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)
-        request = await self._company_action_repository.get_company_action_by_company_and_user(
+        request = await self._company_action_repository.get_by_company_user_and_type(
             company_id, user_id, CompanyActionType.REQUEST
         )
         if not request:
