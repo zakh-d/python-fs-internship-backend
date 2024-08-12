@@ -1,6 +1,8 @@
 from fastapi.testclient import TestClient
 import pytest
 
+from app.db.models import CompanyActionType
+from app.repositories.company_action_repository import CompanyActionRepository
 from app.repositories.company_repository import CompanyRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.company_schema import CompanyCreateSchema, CompanySchema, CompanyUpdateSchema
@@ -141,3 +143,99 @@ def test_owner_can_invite_user(
     assert response.status_code == 200
     assert response.json()['total_count'] == 1
     assert response.json()['users'][0]['id'] == str(user.id)
+
+
+@pytest.mark.asyncio
+async def test_assigning_member_as_admin(
+    client: TestClient,
+    company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
+    company_action_repo: CompanyActionRepository,
+    auth_service: AuthenticationService
+):
+    company, owner, user = company_and_users
+    company_action_repo.create(company.id, user.id, CompanyActionType.MEMBERSHIP)
+    await company_action_repo.commit()
+
+    response = client.post(f'/companies/{company.id}/admins/', json={
+        'user_id': str(user.id)
+    }, headers={
+        'Authorization': f'Bearer {auth_service.generate_jwt_token(owner)}'})
+
+    assert response.status_code == 200
+
+
+def test_cannot_assign_owner_as_admin(
+    client: TestClient,
+    company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
+    auth_service: AuthenticationService
+):
+    company, owner, _ = company_and_users
+    response = client.post(f'/companies/{company.id}/admins/', json={
+        'user_id': str(owner.id)
+    }, headers={
+        'Authorization': f'Bearer {auth_service.generate_jwt_token(owner)}'})
+
+    assert response.status_code == 400
+
+
+def test_cannot_assign_not_member_as_admin(
+    client: TestClient,
+    company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
+    auth_service: AuthenticationService
+):
+    company, owner, user = company_and_users
+    response = client.post(f'/companies/{company.id}/admins/', json={
+        'user_id': str(user.id)
+    }, headers={
+        'Authorization': f'Bearer {auth_service.generate_jwt_token(owner)}'})
+
+    assert response.status_code == 404
+    assert response.json()['detail'] == 'User is not a member of this company'
+
+
+@pytest.mark.asyncio
+async def test_removing_from_admins_downgrades_to_member(
+    client: TestClient,
+    company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
+    company_action_repo: CompanyActionRepository,
+    auth_service: AuthenticationService
+):
+    company, owner, user = company_and_users
+    company_action_repo.create(company.id, user.id, CompanyActionType.ADMIN)
+    await company_action_repo.commit()
+
+    response = client.delete(f'/companies/{company.id}/admins/{user.id}', headers={
+        'Authorization': f'Bearer {auth_service.generate_jwt_token(owner)}'
+    })
+
+    assert response.status_code == 200
+
+    membership = await company_action_repo.get_by_company_user_and_type(company.id, user.id, CompanyActionType.MEMBERSHIP)
+
+    assert membership is not None
+
+
+@pytest.mark.asyncio
+async def test_admin_is_on_members_list(
+    client: TestClient,
+    company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
+    company_action_repo: CompanyActionRepository,
+    auth_service: AuthenticationService
+):
+    company, owner, user = company_and_users
+    company_action_repo.create(company.id, user.id, CompanyActionType.ADMIN)
+    await company_action_repo.commit()
+
+    response = client.get(f'/companies/{company.id}/members/', headers={
+        'Authorization': f'Bearer {auth_service.generate_jwt_token(owner)}'
+    })
+
+    assert response.status_code == 200
+
+    assert response.json()['total_count'] == 2
+    
+    members = response.json()['users']
+
+    members_ids = [member['id'] for member in members]
+
+    assert str(user.id) in members_ids

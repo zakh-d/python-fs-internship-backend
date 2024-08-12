@@ -13,7 +13,7 @@ from app.schemas.company_schema import (
     CompanySchema,
     CompanyUpdateSchema,
 )
-from app.schemas.user_shema import UserDetail, UserEmailSchema, UserList
+from app.schemas.user_shema import UserDetail, UserEmailSchema, UserIdSchema, UserList
 from app.services.company_service.service import CompanyService
 from app.services.users_service.service import UserService
 
@@ -153,3 +153,32 @@ async def remove_member(
     company_service: Annotated[CompanyService, Depends(CompanyService)],
 ) -> None:
     return await company_service.remove_member(company_id, user_id, current_user)
+
+
+@router.get('/{company_id}/admins/')
+async def get_admin_list(
+    company_id: UUID,
+    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+) -> UserList:
+    return await company_service.get_admin_list(company_id, current_user)
+
+
+@router.post('/{company_id}/admins/')
+async def add_admin(
+    company_id: UUID,
+    user_schema: UserIdSchema,
+    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+) -> CompanyActionSchema:
+    return await company_service.add_admin(company_id, user_schema.user_id, current_user)
+
+
+@router.delete('/{company_id}/admins/{user_id}')
+async def remove_admin(
+    company_id: UUID,
+    user_id: UUID,
+    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+) -> CompanyActionSchema:
+    return await company_service.remove_admin(company_id, user_id, current_user)

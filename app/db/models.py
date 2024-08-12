@@ -65,6 +65,7 @@ class CompanyActionType(enum.Enum):
     INVITATION = 'invitation'
     REQUEST = 'request'
     MEMBERSHIP = 'membership'
+    ADMIN = 'admin'
 
 
 class CompanyAction(ModelWithIdAndTimeStamps):

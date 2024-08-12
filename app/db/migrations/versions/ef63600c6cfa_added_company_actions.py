@@ -24,7 +24,9 @@ def upgrade() -> None:
         'company_actions',
         sa.Column('company_id', sa.Uuid(), nullable=False),
         sa.Column('user_id', sa.Uuid(), nullable=False),
-        sa.Column('type', sa.Enum('INVITATION', 'REQUEST', 'MEMBERSHIP', name='companyactiontype'), nullable=False),
+        sa.Column(
+            'type', sa.Enum('INVITATION', 'REQUEST', 'MEMBERSHIP', 'ADMIN', name='companyactiontype'), nullable=False
+        ),
         sa.Column('id', sa.Uuid(), nullable=False),
         sa.Column('created_at', sa.DateTime(), server_default='now()', nullable=False),
         sa.Column('updated_at', sa.DateTime(), server_default='now()', nullable=False),
@@ -37,4 +39,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_table('company_actions')
-    sa.Enum('INVITATION', 'REQUEST', 'MEMBERSHIP', name='companyactiontype').drop(op.get_bind())
+    sa.Enum('INVITATION', 'REQUEST', 'MEMBERSHIP', 'ADMIN', name='companyactiontype').drop(op.get_bind())

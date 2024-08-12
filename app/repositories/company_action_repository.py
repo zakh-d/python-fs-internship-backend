@@ -46,7 +46,7 @@ class CompanyActionRepository(RepositoryBase):
         )
         result = await self.db.execute(query)
         return result.scalars().first()
-    
+
     async def get_by_company_and_user(self, company_id: UUID, user_id: UUID) -> CompanyAction:
         query = select(CompanyAction).where(
             and_(CompanyAction.company_id == company_id, CompanyAction.user_id == user_id)

@@ -42,8 +42,11 @@ class CompanyService:
         # only admin can delete their company
         return company.owner_id == current_user.id
 
+    def _user_is_company_owner(self, company: Company, current_user: UserDetail) -> bool:
+        return company.owner_id == current_user.id
+
     async def _company_exists_and_user_has_permission(
-        self, company_id: UUID, current_user: UserDetail, permission_func: Callable[[UUID, UUID], bool]
+        self, company_id: UUID, current_user: UserDetail, permission_func: Callable[[Company, UserDetail], bool]
     ) -> Company:
         company = await self.check_company_exists(company_id)
         if not permission_func(company, current_user):
@@ -164,7 +167,11 @@ class CompanyService:
         company_id: UUID,
     ) -> UserList:
         await self.check_company_exists(company_id)
-        return await self._get_related_users_list(company_id, CompanyActionType.MEMBERSHIP)
+        members = await self._get_related_users_list(company_id, CompanyActionType.MEMBERSHIP)
+        admins = await self._get_related_users_list(company_id, CompanyActionType.ADMIN)
+        members.users.extend(admins.users)
+        members.total_count += admins.total_count
+        return members
 
     async def accept_request(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> CompanyActionSchema:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)
@@ -190,3 +197,38 @@ class CompanyService:
         if company.owner_id == user_id:
             raise CompanyActionException('Owner cannot be removed from company')
         await self._company_action_repository.delete(company_id, user_id, CompanyActionType.MEMBERSHIP)
+        await self._company_action_repository.delete(company_id, user_id, CompanyActionType.ADMIN)
+
+    async def get_admin_list(
+        self,
+        company_id: UUID,
+        current_user: UserDetail,
+    ) -> UserList:
+        await self._company_exists_and_user_has_permission(company_id, current_user, self._user_is_company_owner)
+        admins = await self._company_action_repository.get_users_related_to_company(company_id, CompanyActionType.ADMIN)
+        return UserList(users=[UserSchema.model_validate(user) for user in admins], total_count=len(admins))
+
+    async def add_admin(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> CompanyActionSchema:
+        company = await self._company_exists_and_user_has_permission(
+            company_id, current_user, self._user_is_company_owner
+        )
+        if company.owner_id == user_id:
+            raise CompanyActionException('Cannot assign owner as an admin')
+        membership = await self._company_action_repository.get_by_company_user_and_type(
+            company_id, user_id, CompanyActionType.MEMBERSHIP
+        )
+        if not membership:
+            raise ActionNotFound(CompanyActionType.MEMBERSHIP)
+        admin_role = await self._company_action_repository.update(membership, CompanyActionType.ADMIN)
+
+        return CompanyActionSchema.model_validate(admin_role)
+
+    async def remove_admin(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> None:
+        await self._company_exists_and_user_has_permission(company_id, current_user, self._user_is_company_owner)
+        admin_role = await self._company_action_repository.get_by_company_user_and_type(
+            company_id, user_id, CompanyActionType.ADMIN
+        )
+        if not admin_role:
+            raise ActionNotFound(CompanyActionType.ADMIN)
+        membership = await self._company_action_repository.update(admin_role, CompanyActionType.MEMBERSHIP)
+        return membership

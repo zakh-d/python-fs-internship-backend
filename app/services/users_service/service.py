@@ -61,7 +61,7 @@ class UserService:
         if not user:
             raise UserNotFoundException('id', user_id)
         return UserDetail.model_validate(user)
-    
+
     async def get_user_by_email(self, email: str) -> UserDetail:
         user = await self._user_repository.get_user_by_email(email)
         if not user:

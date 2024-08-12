@@ -61,5 +61,9 @@ class UserList(BaseModel):
     total_count: int
 
 
+class UserIdSchema(BaseModel):
+    user_id: UUID
+
+
 class UserEmailSchema(BaseModel):
     email: Annotated[EmailStr, Field(max_length=49)]
