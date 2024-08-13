@@ -13,7 +13,7 @@ from app.schemas.company_schema import (
     CompanySchema,
     CompanyUpdateSchema,
 )
-from app.schemas.user_shema import UserDetail, UserEmailSchema, UserIdSchema, UserList
+from app.schemas.user_shema import UserDetail, UserEmailSchema, UserIdSchema, UserInCompanyList, UserList
 from app.services.company_service.service import CompanyService
 from app.services.users_service.service import UserService
 
@@ -141,7 +141,7 @@ async def reject_request(
 async def get_company_members(
     company_id: UUID,
     company_service: Annotated[CompanyService, Depends(CompanyService)],
-) -> UserList:
+) -> UserInCompanyList:
     return await company_service.get_company_members(company_id)
 
 

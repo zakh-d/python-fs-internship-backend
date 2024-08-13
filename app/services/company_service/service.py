@@ -14,7 +14,7 @@ from app.schemas.company_schema import (
     CompanyListSchema,
     CompanySchema,
 )
-from app.schemas.user_shema import UserDetail, UserList, UserSchema
+from app.schemas.user_shema import UserDetail, UserInCompanyList, UserInCompanySchema, UserList, UserSchema
 
 from .exceptions import (
     ActionNotFound,
@@ -165,13 +165,23 @@ class CompanyService:
     async def get_company_members(
         self,
         company_id: UUID,
-    ) -> UserList:
-        await self.check_company_exists(company_id)
+    ) -> UserInCompanyList:
+        company = await self.check_company_exists(company_id)
+
+        total_list = UserInCompanyList(users=[], total_count=0)
+
         members = await self._get_related_users_list(company_id, CompanyActionType.MEMBERSHIP)
+        total_list.users.extend(
+            UserInCompanySchema(**user.dict(), role='member' if user.id != company.owner_id else 'owner')
+            for user in members.users
+        )
+        total_list.total_count += members.total_count
+
         admins = await self._get_related_users_list(company_id, CompanyActionType.ADMIN)
-        members.users.extend(admins.users)
-        members.total_count += admins.total_count
-        return members
+        total_list.users.extend(UserInCompanySchema(**user.dict(), role='admin') for user in admins.users)
+        total_list.total_count += admins.total_count
+
+        return total_list
 
     async def accept_request(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> CompanyActionSchema:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)

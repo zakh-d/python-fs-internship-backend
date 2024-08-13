@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated, Optional, Union
+from typing import Annotated, Literal, Optional, Union
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, model_validator
@@ -67,3 +67,11 @@ class UserIdSchema(BaseModel):
 
 class UserEmailSchema(BaseModel):
     email: Annotated[EmailStr, Field(max_length=49)]
+
+
+class UserInCompanySchema(UserSchema):
+    role: Literal['admin', 'owner', 'member']
+
+
+class UserInCompanyList(UserList):
+    users: list[UserInCompanySchema] = []
