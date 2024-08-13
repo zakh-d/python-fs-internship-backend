@@ -87,7 +87,7 @@ class Quizz(ModelWithIdAndTimeStamps):
     title: Mapped[str] = mapped_column(String(50))
     description: Mapped[str] = mapped_column(String(250), nullable=True)
     company_id: Mapped[UUID] = mapped_column(ForeignKey('companies.id', ondelete='CASCADE'))
-    is_ready: Mapped[bool] = mapped_column(Boolean, default=False)
+    frequency: Mapped[int]
 
 
 class Question(ModelWithIdAndTimeStamps):

@@ -25,7 +25,7 @@ def upgrade() -> None:
         sa.Column('title', sa.String(length=50), nullable=False),
         sa.Column('description', sa.String(length=250), nullable=True),
         sa.Column('company_id', sa.Uuid(), nullable=False),
-        sa.Column('is_ready', sa.Boolean(), nullable=False),
+        sa.Column('frequency', sa.Integer(), nullable=False),
         sa.Column('id', sa.Uuid(), nullable=False),
         sa.Column('created_at', sa.DateTime(), server_default='now()', nullable=False),
         sa.Column('updated_at', sa.DateTime(), server_default='now()', nullable=False),
