@@ -192,6 +192,8 @@ async def get_company_quizzes(
     company_service: Annotated[CompanyService, Depends()],
     quizz_service: Annotated[QuizzService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
+    page: int = 1,
+    limit: int = 10
 ) -> QuizzListSchema:
     await company_service.check_is_member(company_id, current_user.id)
-    return await quizz_service.get_company_quizzes(company_id)
+    return await quizz_service.get_company_quizzes(company_id, page, limit)

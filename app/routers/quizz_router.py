@@ -23,7 +23,7 @@ async def create_quizz(
     return await quizz_service.create_quizz(quizz_data, quizz_data.company_id)
 
 
-@router.get('/{quizz_id}')
+@router.get('/{quizz_id}/')
 async def get_quizz(
     quizz_id: UUID,
     quizz_service: Annotated[QuizzService, Depends()],
@@ -36,7 +36,7 @@ async def get_quizz(
     return quizz_with_questions
 
 
-@router.get('/{quizz_id}/correct')
+@router.get('/{quizz_id}/correct/')
 async def get_quizz_with_correct_answers(
     quizz_id: UUID,
     quizz_service: Annotated[QuizzService, Depends()],

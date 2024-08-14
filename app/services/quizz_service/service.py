@@ -84,8 +84,9 @@ class QuizzService:
             quizz.questions.append(question_schema)
         return quizz
 
-    async def get_company_quizzes(self, company_id: UUID) -> QuizzListSchema:
-        quizzes = await self._quizz_repository.get_company_quizzes(company_id)
+    async def get_company_quizzes(self, company_id: UUID, page: int, limit: int) -> QuizzListSchema:
+        offset = (page - 1) * limit
+        quizzes = await self._quizz_repository.get_company_quizzes(company_id, offset, limit)
         return QuizzListSchema(
             quizzes=[QuizzWithNoQuestionsSchema.model_validate(quizz) for quizz in quizzes],
             total_count=await self._quizz_repository.get_company_quizzes_count(company_id),
