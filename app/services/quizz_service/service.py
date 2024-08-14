@@ -4,11 +4,21 @@ from uuid import UUID
 from fastapi import Depends
 
 from app.repositories.quizz_repository import QuizzRepository
-from app.schemas.quizz_schema import AnswerSchema, QuestionSchema, QuizzCreateSchema, QuizzSchema
+from app.schemas.quizz_schema import (
+    AnswerSchema,
+    AnswerWithCorrectSchema,
+    QuestionSchema,
+    QuestionWithCorrectAnswerSchema,
+    QuizzCreateSchema,
+    QuizzListSchema,
+    QuizzSchema,
+    QuizzWithCorrectAnswersSchema,
+    QuizzWithNoQuestionsSchema,
+)
+from app.services.quizz_service.exceptions import QuizzNotFound
 
 
 class QuizzService:
-
     def __init__(self, quizz_repository: Annotated[QuizzRepository, Depends()]) -> None:
         self._quizz_repository = quizz_repository
 
@@ -35,7 +45,7 @@ class QuizzService:
                     answers=[],
                     id=question.id,
                 )
-                
+
                 for answer_data in question_data.answers:
                     answer = await self._quizz_repository.create_answer(
                         text=answer_data.text,
@@ -46,29 +56,37 @@ class QuizzService:
                 response_schema.questions.append(question_response_schema)
             return response_schema
 
-    async def get_quizz(self, quizz_id: UUID) -> QuizzSchema:
+    async def get_quizz(self, quizz_id: UUID) -> QuizzWithNoQuestionsSchema:
         quizz = await self._quizz_repository.get_quizz(quizz_id)
-        response_schema = QuizzSchema(
-            id=quizz.id,
-            title=quizz.title,
-            description=quizz.description,
-            frequency=quizz.frequency,
-            company_id=quizz.company_id,
-            questions=[]
-        )
-        return response_schema
+        if not quizz:
+            raise QuizzNotFound()
+        return QuizzWithNoQuestionsSchema.model_validate(quizz)
 
-    async def fetch_quizz_questions(self, quizz: QuizzSchema) -> QuizzSchema:
+    async def fetch_quizz_questions(self, quizz_without_questions: QuizzWithNoQuestionsSchema) -> QuizzSchema:
+        quizz = QuizzSchema(**quizz_without_questions.model_dump(), questions=[])
         questions = await self._quizz_repository.get_quizz_questions(quizz.id)
-
         for question in questions:
-            question_schema = QuestionSchema(
-                id=question.id,
-                text=question.text,
-                answers=[]
-            )
+            question_schema = QuestionSchema(id=question.id, text=question.text, answers=[])
             answers = await self._quizz_repository.get_question_answers(question.id)
             question_schema.answers = [AnswerSchema.model_validate(answer) for answer in answers]
             quizz.questions.append(question_schema)
         return quizz
- 
+
+    async def fetch_quizz_questions_with_correct_answers(
+        self, quizz_without_questions: QuizzWithNoQuestionsSchema
+    ) -> QuizzWithCorrectAnswersSchema:
+        quizz = QuizzSchema(**quizz_without_questions.model_dump(), questions=[])
+        questions = await self._quizz_repository.get_quizz_questions(quizz.id)
+        for question in questions:
+            question_schema = QuestionWithCorrectAnswerSchema(id=question.id, text=question.text, answers=[])
+            answers = await self._quizz_repository.get_question_answers(question.id)
+            question_schema.answers = [AnswerWithCorrectSchema.model_validate(answer) for answer in answers]
+            quizz.questions.append(question_schema)
+        return quizz
+
+    async def get_company_quizzes(self, company_id: UUID) -> QuizzListSchema:
+        quizzes = await self._quizz_repository.get_company_quizzes(company_id)
+        return QuizzListSchema(
+            quizzes=[QuizzWithNoQuestionsSchema.model_validate(quizz) for quizz in quizzes],
+            total_count=await self._quizz_repository.get_company_quizzes_count(company_id),
+        )

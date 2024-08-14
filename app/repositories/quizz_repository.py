@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import Optional, Union
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.db.models import Answer, Question, Quizz
 from app.repositories.repository_base import RepositoryBase
@@ -30,8 +30,18 @@ class QuizzRepository(RepositoryBase):
         await self.db.refresh(answer)
         return answer
     
-    async def get_quizz(self, quizz_id: UUID) -> Quizz:
+    async def get_quizz(self, quizz_id: UUID) -> Union[Quizz, None]:
         return await self._get_item_by_id(quizz_id, Quizz)
+    
+    async def get_company_quizzes(self, company_id: UUID, offset: int = 0, limit: int = 10) -> list[Quizz]:
+        query = select(Quizz).where(Quizz.company_id == company_id).offset(offset).limit(limit)
+        result = await self.db.execute(query)
+        return result.scalars().all()
+
+    async def get_company_quizzes_count(self, company_id: UUID) -> int:
+        query = select(func.count(Quizz.id)).where(Quizz.company_id == company_id)
+        result = await self.db.execute(query)
+        return result.scalar_one()
     
     async def get_quizz_questions(self, quizz_id: UUID) -> list[Question]:
         query = select(Question).where(Question.quizz_id == quizz_id)

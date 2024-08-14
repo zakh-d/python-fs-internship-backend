@@ -46,9 +46,12 @@ class QuizzCreateSchema(BaseModel):
 class AnswerSchema(BaseModel):
     id: UUID
     text: str
-    is_correct: bool
     
     model_config = ConfigDict(from_attributes=True)
+
+
+class AnswerWithCorrectSchema(AnswerSchema):
+    is_correct: bool
 
 
 class QuestionSchema(BaseModel):
@@ -57,15 +60,32 @@ class QuestionSchema(BaseModel):
     answers: list[AnswerSchema]
 
 
-class QuizzSchema(BaseModel):
+class QuestionWithCorrectAnswerSchema(QuestionSchema):
+    answers: list[AnswerWithCorrectSchema]
+
+
+class QuizzWithNoQuestionsSchema(BaseModel):
     id: UUID
     title: str
     description: Optional[str]
     frequency: int
     company_id: UUID
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class QuizzSchema(QuizzWithNoQuestionsSchema):
     questions: list[QuestionSchema]
+
+    model_config = ConfigDict(from_attributes=False)
+
+
+class QuizzWithCorrectAnswersSchema(QuizzSchema):
+    questions: list[QuestionWithCorrectAnswerSchema]
+
+    model_config = ConfigDict(from_attributes=False)
 
 
 class QuizzListSchema(BaseModel):
-    quizzes: list[QuizzSchema]
+    quizzes: list[QuizzWithNoQuestionsSchema]
     total_count: int
