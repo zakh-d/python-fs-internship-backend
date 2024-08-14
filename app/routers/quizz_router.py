@@ -48,3 +48,14 @@ async def get_quizz_with_correct_answers(
     quizz_with_questions = await quizz_service.fetch_quizz_questions_with_correct_answers(quizz_no_questions)
     return quizz_with_questions
 
+
+@router.delete('/{quizz_id}/')
+async def delete_quizz(
+    quiz_id: UUID,
+    quizz_service: Annotated[QuizzService, Depends()],
+    company_service: Annotated[CompanyService, Depends()],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+) -> None:
+    quizz = await quizz_service.get_quizz(quiz_id)
+    await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
+    await quizz_service.delete_quizz(quiz_id)

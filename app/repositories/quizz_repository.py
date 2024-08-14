@@ -52,3 +52,7 @@ class QuizzRepository(RepositoryBase):
         query = select(Answer).where(Answer.question_id == question_id)
         result = await self.db.execute(query)
         return result.scalars().all()
+
+    async def delete_quizz(self, quizz_id: UUID) -> None:
+        await self._delete_item_by_id(quizz_id, Quizz)
+        await self.db.commit()

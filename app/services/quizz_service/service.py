@@ -91,3 +91,6 @@ class QuizzService:
             quizzes=[QuizzWithNoQuestionsSchema.model_validate(quizz) for quizz in quizzes],
             total_count=await self._quizz_repository.get_company_quizzes_count(company_id),
         )
+
+    async def delete_quizz(self, quizz_id: UUID) -> None:
+        await self._quizz_repository.delete_quizz(quizz_id)
