@@ -1,10 +1,11 @@
 from typing import Optional
+from uuid import UUID
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from typing_extensions import Self
 
 
-class AnswerSchema(BaseModel):
+class AnswerCreateSchema(BaseModel):
     text: str = Field(max_length=250)
     is_correct: bool
 
@@ -24,7 +25,7 @@ class QuestionCreateSchema(BaseModel):
         return self
 
     text: str = Field(max_length=250)
-    answers: list[AnswerSchema]
+    answers: list[AnswerCreateSchema]
 
 
 class QuizzCreateSchema(BaseModel):
@@ -39,3 +40,28 @@ class QuizzCreateSchema(BaseModel):
     description: Optional[str] = Field(max_length=250, default=None)
     questions: list[QuestionCreateSchema]
     frequency: int
+
+
+class AnswerSchema(BaseModel):
+    id: UUID
+    text: str
+    is_correct: bool
+    
+    model_config = ConfigDict(from_attributes=True)
+
+
+class QuestionSchema(BaseModel):
+    id: UUID
+    text: str
+    answers: list[AnswerSchema]
+
+
+class QuizzSchema(BaseModel):
+    id: UUID
+    title: str
+    questions: list[QuestionSchema]
+
+
+class QuizzListSchema(BaseModel):
+    quizzes: list[QuizzSchema]
+    total_count: int

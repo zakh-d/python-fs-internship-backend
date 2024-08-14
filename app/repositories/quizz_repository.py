@@ -21,7 +21,9 @@ class QuizzRepository(RepositoryBase):
         await self.db.refresh(question)
         return question
 
-    def create_answer(self, text: str, question_id: UUID, is_correct: bool) -> Answer:
+    async def create_answer(self, text: str, question_id: UUID, is_correct: bool) -> Answer:
         answer = Answer(text=text, question_id=question_id, is_correct=is_correct)
         self.db.add(answer)
+        await self.db.flush()
+        await self.db.refresh(answer)
         return answer

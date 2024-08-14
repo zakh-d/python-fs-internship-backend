@@ -13,7 +13,7 @@ from app.schemas.company_schema import (
     CompanySchema,
     CompanyUpdateSchema,
 )
-from app.schemas.quizz_schema import QuizzCreateSchema
+from app.schemas.quizz_schema import QuizzCreateSchema, QuizzSchema
 from app.schemas.user_shema import UserDetail, UserEmailSchema, UserIdSchema, UserInCompanyList, UserList
 from app.services.company_service.service import CompanyService
 from app.services.quizz_service.service import QuizzService
@@ -193,6 +193,6 @@ async def create_quizz(
     company_service: Annotated[CompanyService, Depends()],
     quizz_service: Annotated[QuizzService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
-) -> None:
+) -> QuizzSchema:
     await company_service.check_owner_or_admin(company_id, current_user.id)
     return await quizz_service.create_quizz(quizz_data, company_id)
