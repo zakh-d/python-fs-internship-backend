@@ -36,6 +36,7 @@ class QuizzCreateSchema(BaseModel):
             raise ValueError('quizz must have at least one question')
         return self
 
+    company_id: UUID
     title: str = Field(max_length=50)
     description: Optional[str] = Field(max_length=250, default=None)
     questions: list[QuestionCreateSchema]
@@ -59,6 +60,9 @@ class QuestionSchema(BaseModel):
 class QuizzSchema(BaseModel):
     id: UUID
     title: str
+    description: Optional[str]
+    frequency: int
+    company_id: UUID
     questions: list[QuestionSchema]
 
 

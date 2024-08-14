@@ -8,7 +8,7 @@ from app.db.models import CompanyActionType
 class CompanyPermissionException(HTTPException):
     def __init__(self):
         super().__init__(
-            status_code=status.HTTP_403_FORBIDDEN, detail='User does not have permission to edit this company'
+            status_code=status.HTTP_403_FORBIDDEN, detail='User does not have permission for this action on the company'
         )
 
 

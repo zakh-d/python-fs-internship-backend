@@ -73,6 +73,18 @@ class CompanyService:
         if company.owner_id != user_id and is_admin is None:
             raise CompanyPermissionException()
         return company
+    
+    async def check_is_member(self, company_id: UUID, user_id: UUID) -> Company:
+        company = await self.check_company_exists(company_id)
+        is_member = await self._company_action_repository.get_by_company_user_and_type(
+            company_id=company_id, user_id=user_id, _type=CompanyActionType.MEMBERSHIP
+        )
+        is_admin = await self._company_action_repository.get_by_company_user_and_type(
+            company_id=company_id, user_id=user_id, _type=CompanyActionType.ADMIN
+        )
+        if is_member is None and is_admin is None:
+            raise CompanyPermissionException()
+        return company
 
     async def get_all_companies(self, page: int, limit: int) -> CompanyListSchema:
         offset = (page - 1) * limit

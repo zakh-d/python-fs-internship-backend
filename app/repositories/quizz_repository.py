@@ -1,6 +1,8 @@
 from typing import Optional
 from uuid import UUID
 
+from sqlalchemy import select
+
 from app.db.models import Answer, Question, Quizz
 from app.repositories.repository_base import RepositoryBase
 
@@ -27,3 +29,16 @@ class QuizzRepository(RepositoryBase):
         await self.db.flush()
         await self.db.refresh(answer)
         return answer
+    
+    async def get_quizz(self, quizz_id: UUID) -> Quizz:
+        return await self._get_item_by_id(quizz_id, Quizz)
+    
+    async def get_quizz_questions(self, quizz_id: UUID) -> list[Question]:
+        query = select(Question).where(Question.quizz_id == quizz_id)
+        result = await self.db.execute(query)
+        return result.scalars().all()
+
+    async def get_question_answers(self, question_id: UUID) -> list[Answer]:
+        query = select(Answer).where(Answer.question_id == question_id)
+        result = await self.db.execute(query)
+        return result.scalars().all()

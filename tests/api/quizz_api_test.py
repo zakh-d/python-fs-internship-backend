@@ -13,17 +13,18 @@ def test_quizz_creation_require_at_least_one_question(
     company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
     auth_service: AuthenticationService
 ):
+    company, owner, _ = company_and_users
     quizz_json = {
         'title': 'Test quizz',
         'description': 'Test description',
         'frequency': 1,
+        'company_id': str(company.id),
         'questions': []
     }
 
-    company, owner, _ = company_and_users
     token = auth_service.generate_jwt_token(owner)
 
-    response = client.post(f'/companies/{company.id}/quizzes/', json=quizz_json, headers={
+    response = client.post(f'/quizzes/', json=quizz_json, headers={
         'Authorization': f'Bearer {token}'
     })
 
@@ -37,10 +38,12 @@ def test_quizz_question_requires_min_2_answers(
     company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
     auth_service: AuthenticationService 
 ):
+    company, owner, _ = company_and_users
     quizz_json = {
         'title': 'Test quizz',
         'description': 'Test description',
         'frequency': 1,
+        'company_id': str(company.id),
         'questions': [
             {
                 'text': 'Test question',
@@ -54,10 +57,9 @@ def test_quizz_question_requires_min_2_answers(
         ]
     }
 
-    company, owner, _ = company_and_users
     token = auth_service.generate_jwt_token(owner)
 
-    response = client.post(f'/companies/{company.id}/quizzes/', json=quizz_json, headers={
+    response = client.post(f'/quizzes/', json=quizz_json, headers={
         'Authorization': f'Bearer {token}'
     })
 
@@ -71,10 +73,12 @@ def test_quizz_question_requires_max_4_answers(
     company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
     auth_service: AuthenticationService 
 ):
+    company, owner, _ = company_and_users
     quizz_json = {
         'title': 'Test quizz',
         'description': 'Test description',
         'frequency': 1,
+        'company_id': str(company.id),
         'questions': [
             {
                 'text': 'Test question',
@@ -101,10 +105,9 @@ def test_quizz_question_requires_max_4_answers(
         ]
     }
 
-    company, owner, _ = company_and_users
     token = auth_service.generate_jwt_token(owner)
 
-    response = client.post(f'/companies/{company.id}/quizzes/', json=quizz_json, headers={
+    response = client.post(f'/quizzes/', json=quizz_json, headers={
         'Authorization': f'Bearer {token}'
     })
 
@@ -118,10 +121,13 @@ def test_quizz_question_must_have_at_least_one_correct_option(
     company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
     auth_service: AuthenticationService 
 ):
+    company, owner, _ = company_and_users
+
     quizz_json = {
         'title': 'Test quizz',
         'description': 'Test description',
         'frequency': 1,
+        'company_id': str(company.id),
         'questions': [
             {
                 'text': 'Test question',
@@ -139,10 +145,9 @@ def test_quizz_question_must_have_at_least_one_correct_option(
         ]
     }
 
-    company, owner, _ = company_and_users
     token = auth_service.generate_jwt_token(owner)
 
-    response = client.post(f'/companies/{company.id}/quizzes/', json=quizz_json, headers={
+    response = client.post(f'/quizzes/', json=quizz_json, headers={
         'Authorization': f'Bearer {token}'
     })
 
@@ -158,10 +163,12 @@ async def test_member_cannot_create_quizz(
     auth_service: AuthenticationService,
     company_action_repo: CompanyActionRepository
 ):
+    company, owner, user = company_and_users
     quizz_json = {
         'title': 'Test quizz',
         'description': 'Test description',
         'frequency': 1,
+        'company_id': str(company.id),
         'questions': [
             {
                 'text': 'Test question',
@@ -179,13 +186,12 @@ async def test_member_cannot_create_quizz(
         ]
     }
 
-    company, owner, user = company_and_users
     company_action_repo.create(company.id, user.id, CompanyActionType.MEMBERSHIP)
     await company_action_repo.commit()
     token = auth_service.generate_jwt_token(user)
 
 
-    response = client.post(f'/companies/{company.id}/quizzes/', json=quizz_json, headers={
+    response = client.post(f'/quizzes/', json=quizz_json, headers={
         'Authorization': f'Bearer {token}'
     })
 
@@ -199,9 +205,11 @@ async def test_admin_can_create_quizz(
     auth_service: AuthenticationService,
     company_action_repo: CompanyActionRepository
 ):
+    company, owner, user = company_and_users
     quizz_json = {
         'title': 'Test quizz',
         'description': 'Test description',
+        'company_id': str(company.id),
         'frequency': 1,
         'questions': [
             {
@@ -220,13 +228,12 @@ async def test_admin_can_create_quizz(
         ]
     }
 
-    company, owner, user = company_and_users
     company_action_repo.create(company.id, user.id, CompanyActionType.ADMIN)
     await company_action_repo.commit()
     token = auth_service.generate_jwt_token(user)
 
 
-    response = client.post(f'/companies/{company.id}/quizzes/', json=quizz_json, headers={
+    response = client.post(f'/quizzes/', json=quizz_json, headers={
         'Authorization': f'Bearer {token}'
     })
 
@@ -237,10 +244,11 @@ def test_admin_can_create_quizz(
     client: TestClient,
     company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
     auth_service: AuthenticationService,
-    company_action_repo: CompanyActionRepository
 ):
+    company, owner, _ = company_and_users
     quizz_json = {
         'title': 'Test quizz',
+        'company_id': str(company.id),
         'description': 'Test description',
         'frequency': 1,
         'questions': [
@@ -260,11 +268,10 @@ def test_admin_can_create_quizz(
         ]
     }
 
-    company, owner, _ = company_and_users
     token = auth_service.generate_jwt_token(owner)
 
 
-    response = client.post(f'/companies/{company.id}/quizzes/', json=quizz_json, headers={
+    response = client.post(f'/quizzes/', json=quizz_json, headers={
         'Authorization': f'Bearer {token}'
     })
 

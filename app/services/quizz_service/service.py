@@ -45,3 +45,30 @@ class QuizzService:
                     question_response_schema.answers.append(AnswerSchema.model_validate(answer))
                 response_schema.questions.append(question_response_schema)
             return response_schema
+
+    async def get_quizz(self, quizz_id: UUID) -> QuizzSchema:
+        quizz = await self._quizz_repository.get_quizz(quizz_id)
+        response_schema = QuizzSchema(
+            id=quizz.id,
+            title=quizz.title,
+            description=quizz.description,
+            frequency=quizz.frequency,
+            company_id=quizz.company_id,
+            questions=[]
+        )
+        return response_schema
+
+    async def fetch_quizz_questions(self, quizz: QuizzSchema) -> QuizzSchema:
+        questions = await self._quizz_repository.get_quizz_questions(quizz.id)
+
+        for question in questions:
+            question_schema = QuestionSchema(
+                id=question.id,
+                text=question.text,
+                answers=[]
+            )
+            answers = await self._quizz_repository.get_question_answers(question.id)
+            question_schema.answers = [AnswerSchema.model_validate(answer) for answer in answers]
+            quizz.questions.append(question_schema)
+        return quizz
+ 
