@@ -13,8 +13,10 @@ from app.schemas.company_schema import (
     CompanySchema,
     CompanyUpdateSchema,
 )
+from app.schemas.quizz_schema import QuizzCreateSchema
 from app.schemas.user_shema import UserDetail, UserEmailSchema, UserIdSchema, UserInCompanyList, UserList
 from app.services.company_service.service import CompanyService
+from app.services.quizz_service.service import QuizzService
 from app.services.users_service.service import UserService
 
 router = APIRouter()
@@ -22,7 +24,7 @@ router = APIRouter()
 
 @router.get('/')
 async def get_companies(
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    company_service: Annotated[CompanyService, Depends()],
     _: Annotated[UserDetail, Depends(get_current_user)],  # requires authentication
     page: int = 1,
     limit: int = 10,
@@ -32,7 +34,7 @@ async def get_companies(
 
 @router.get('/my/')
 async def get_my_companies(
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    company_service: Annotated[CompanyService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],  # requires authentication
     page: int = 1,
     limit: int = 10,
@@ -43,7 +45,7 @@ async def get_my_companies(
 @router.get('/{company_id}')
 async def get_company_by_id(
     company_id: UUID,
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    company_service: Annotated[CompanyService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],  # requires authentication
 ) -> CompanyDetailWithIsMemberSchema:
     return await company_service.get_company_by_id(company_id, current_user)
@@ -53,7 +55,7 @@ async def get_company_by_id(
 async def create_company(
     company_data: CompanyCreateSchema,
     current_user: Annotated[UserDetail, Depends(get_current_user)],
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    company_service: Annotated[CompanyService, Depends()],
 ) -> CompanySchema:
     return await company_service.create_company(company_data, current_user)
 
@@ -63,7 +65,7 @@ async def update_company(
     company_id: UUID,
     company_data: CompanyUpdateSchema,
     current_user: Annotated[UserDetail, Depends(get_current_user)],
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    company_service: Annotated[CompanyService, Depends()],
 ) -> CompanyDetailSchema:
     return await company_service.update_company(company_id, company_data, current_user)
 
@@ -71,7 +73,7 @@ async def update_company(
 @router.delete('/{company_id}')
 async def delete_company(
     company_id: UUID,
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    company_service: Annotated[CompanyService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],  # requires authentication
 ) -> None:
     return await company_service.delete_company(company_id, current_user)
@@ -80,7 +82,7 @@ async def delete_company(
 @router.get('/{company_id}/invites/')
 async def get_invites_for_company(
     company_id: UUID,
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    company_service: Annotated[CompanyService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],  # requires authentication
 ) -> UserList:
     return await company_service.get_invites_for_company(company_id, current_user)
@@ -92,7 +94,7 @@ async def intive_user_to_company(
     user_data: UserEmailSchema,
     current_user: Annotated[UserDetail, Depends(get_current_user)],
     user_service: Annotated[UserService, Depends()],
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    company_service: Annotated[CompanyService, Depends()],
 ) -> CompanyActionSchema:
     user = await user_service.get_user_by_email(user_data.email)
     return await company_service.invite_user(company_id, user.id, current_user)
@@ -103,7 +105,7 @@ async def cancel_invite(
     company_id: UUID,
     user_id: UUID,
     current_user: Annotated[UserDetail, Depends(get_current_user)],
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    company_service: Annotated[CompanyService, Depends()],
 ) -> None:
     return await company_service.cancel_invite(company_id, user_id, current_user)
 
@@ -111,7 +113,7 @@ async def cancel_invite(
 @router.get('/{company_id}/requests/')
 async def get_requests_to_company(
     company_id: UUID,
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    company_service: Annotated[CompanyService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],  # requires authentication
 ) -> UserList:
     return await company_service.get_requests_to_company(company_id, current_user)
@@ -122,7 +124,7 @@ async def accept_request(
     company_id: UUID,
     user_id: UUID,
     current_user: Annotated[UserDetail, Depends(get_current_user)],
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    company_service: Annotated[CompanyService, Depends()],
 ) -> CompanyActionSchema:
     return await company_service.accept_request(company_id, user_id, current_user)
 
@@ -132,7 +134,7 @@ async def reject_request(
     company_id: UUID,
     user_id: UUID,
     current_user: Annotated[UserDetail, Depends(get_current_user)],
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    company_service: Annotated[CompanyService, Depends()],
 ) -> None:
     return await company_service.reject_request(company_id, user_id, current_user)
 
@@ -140,7 +142,7 @@ async def reject_request(
 @router.get('/{company_id}/members/', dependencies=[Depends(get_current_user)])
 async def get_company_members(
     company_id: UUID,
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    company_service: Annotated[CompanyService, Depends()],
 ) -> UserInCompanyList:
     return await company_service.get_company_members(company_id)
 
@@ -150,7 +152,7 @@ async def remove_member(
     company_id: UUID,
     user_id: UUID,
     current_user: Annotated[UserDetail, Depends(get_current_user)],
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    company_service: Annotated[CompanyService, Depends()],
 ) -> None:
     return await company_service.remove_member(company_id, user_id, current_user)
 
@@ -158,7 +160,7 @@ async def remove_member(
 @router.get('/{company_id}/admins/')
 async def get_admin_list(
     company_id: UUID,
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    company_service: Annotated[CompanyService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
 ) -> UserList:
     return await company_service.get_admin_list(company_id, current_user)
@@ -168,7 +170,7 @@ async def get_admin_list(
 async def add_admin(
     company_id: UUID,
     user_schema: UserIdSchema,
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    company_service: Annotated[CompanyService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
 ) -> CompanyActionSchema:
     return await company_service.add_admin(company_id, user_schema.user_id, current_user)
@@ -178,7 +180,19 @@ async def add_admin(
 async def remove_admin(
     company_id: UUID,
     user_id: UUID,
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    company_service: Annotated[CompanyService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
 ) -> CompanyActionSchema:
     return await company_service.remove_admin(company_id, user_id, current_user)
+
+
+@router.post('/{company_id}/quizzes/')
+async def create_quizz(
+    company_id: UUID,
+    quizz_data: QuizzCreateSchema,
+    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends()],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+) -> None:
+    await company_service.check_owner_or_admin(company_id, current_user.id)
+    return await quizz_service.create_quizz(quizz_data, company_id)

@@ -31,11 +31,11 @@ class QuizzCreateSchema(BaseModel):
 
     @model_validator(mode='after')
     def check_at_least_one_question(self) -> Self:
-        if not self.questtions:
+        if not self.questions:
             raise ValueError('quizz must have at least one question')
         return self
 
     title: str = Field(max_length=50)
     description: Optional[str] = Field(max_length=250, default=None)
-    questtions: list[QuestionCreateSchema]
+    questions: list[QuestionCreateSchema]
     frequency: int

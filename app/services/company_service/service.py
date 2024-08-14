@@ -39,7 +39,7 @@ class CompanyService:
         return company.owner_id == current_user.id
 
     def _user_has_delete_permission(self, company: Company, current_user: UserDetail) -> bool:
-        # only admin can delete their company
+        # only owner can delete their company
         return company.owner_id == current_user.id
 
     def _user_is_company_owner(self, company: Company, current_user: UserDetail) -> bool:
@@ -63,6 +63,15 @@ class CompanyService:
         company = await self.check_company_exists(company_id)
         if company.hidden:
             raise CompanyNotFoundException(company_id)
+        return company
+
+    async def check_owner_or_admin(self, company_id: UUID, user_id: UUID) -> Company:
+        company = await self.check_company_exists(company_id)
+        is_admin = await self._company_action_repository.get_by_company_user_and_type(
+            company_id=company_id, user_id=user_id, _type=CompanyActionType.ADMIN
+        )
+        if company.owner_id != user_id and is_admin is None:
+            raise CompanyPermissionException()
         return company
 
     async def get_all_companies(self, page: int, limit: int) -> CompanyListSchema:
