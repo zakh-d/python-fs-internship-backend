@@ -3,9 +3,52 @@ import pytest
 
 from app.db.models import CompanyActionType
 from app.repositories.company_action_repository import CompanyActionRepository
+from app.repositories.quizz_repository import QuizzRepository
 from app.schemas.company_schema import CompanySchema
+from app.schemas.quizz_schema import AnswerCreateSchema, QuestionCreateSchema, QuizzCreateSchema, QuizzSchema
 from app.schemas.user_shema import UserSchema
 from app.services.authentication_service.service import AuthenticationService
+from app.services.quizz_service.service import QuizzService
+
+
+@pytest.fixture
+def quizz_repo(get_db):
+    return QuizzRepository(get_db)
+
+
+@pytest.fixture
+def quizz_service(quizz_repo):
+    return QuizzService(quizz_repo)
+
+@pytest.fixture
+async def test_quizz(quizz_service, company_and_users):
+    company, _, _ = company_and_users
+    quizz_data = QuizzCreateSchema(
+        title='Test quizz',
+        description='Test description',
+        frequency=1,
+        company_id=company.id,
+        questions=[
+            QuestionCreateSchema(
+                text='Test question',
+                answers=[
+                    AnswerCreateSchema(
+                        text='option 1',
+                        is_correct=False
+                    ),
+                    AnswerCreateSchema(
+                        text='option 2',
+                        is_correct=True
+                    ),
+                    AnswerCreateSchema(
+                        text='option 3',
+                        is_correct=False
+                    )
+                ]
+            )
+        ]
+    )
+    return await quizz_service.create_quizz(quizz_data, company.id)
 
 
 def test_quizz_creation_require_at_least_one_question(
@@ -276,3 +319,67 @@ def test_admin_can_create_quizz(
     })
 
     assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_member_cannot_access_correct_answers(
+    client: TestClient,
+    company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
+    company_action_repo: CompanyActionRepository,
+    auth_service: AuthenticationService,
+    test_quizz: QuizzSchema,
+):
+    comapny, owner, user = company_and_users
+    company_action_repo.create(comapny.id, user.id, CompanyActionType.MEMBERSHIP)
+    await company_action_repo.commit()
+
+    response = client.get(f'/quizzes/{test_quizz.id}/correct', headers={
+        'Authorization': f'Bearer {auth_service.generate_jwt_token(user)}'
+    })
+    assert response.status_code == 403
+
+
+
+def test_owner_can_access_correct_answers(
+    client: TestClient,
+    company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
+    auth_service: AuthenticationService,
+    test_quizz: QuizzSchema,
+):
+    comapny, owner, user = company_and_users
+
+    response = client.get(f'/quizzes/{test_quizz.id}/correct', headers={
+        'Authorization': f'Bearer {auth_service.generate_jwt_token(owner)}'
+    })
+    assert response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_admin_can_access_correct_answers(
+    client: TestClient,
+    company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
+    company_action_repo: CompanyActionRepository,
+    auth_service: AuthenticationService,
+    test_quizz: QuizzSchema,
+):
+    comapny, owner, user = company_and_users
+    company_action_repo.create(comapny.id, user.id, CompanyActionType.ADMIN)
+    await company_action_repo.commit()
+
+    response = client.get(f'/quizzes/{test_quizz.id}/correct', headers={
+        'Authorization': f'Bearer {auth_service.generate_jwt_token(user)}'
+    })
+    assert response.status_code == 200
+
+
+def test_does_not_expose_correct_answers(
+    client: TestClient,
+    company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
+    auth_service: AuthenticationService,
+    test_quizz: QuizzSchema,
+):
+    response = client.get(f'/quizzes/{test_quizz.id}', headers={
+        'Authorization': f'Bearer {auth_service.generate_jwt_token(company_and_users[1])}'
+    })
+
+    assert all('is_correct' not in answer for question in response.json()['questions'] for answer in question['answers'])
