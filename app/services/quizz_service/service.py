@@ -68,23 +68,16 @@ class QuizzService:
                 quizz_id=quizz_id,
             )
             for answer_data in question_data.answers:
-                await self._quizz_repository.create_answer(
-                    **answer_data.model_dump(),
-                    question_id=question.id
-                )
-    
+                await self._quizz_repository.create_answer(**answer_data.model_dump(), question_id=question.id)
+
     async def add_answer_to_question(self, quizz_id: UUID, question_id: UUID, answer_data: AnswerCreateSchema) -> None:
         question = await self._quizz_repository.get_question(question_id)
         if question.quizz_id != quizz_id:
             raise QuizzNotFound('Question')
         if await self._quizz_repository.get_question_answers_count(question_id) == 4:
             raise QuizzError('Question can have max 4 answers')
-        await self._quizz_repository.create_answer(
-            **answer_data.model_dump(),
-            question_id=question_id
-        )
+        await self._quizz_repository.create_answer(**answer_data.model_dump(), question_id=question_id)
         await self._quizz_repository.commit()
-        
 
     async def get_quizz(self, quizz_id: UUID) -> QuizzWithNoQuestionsSchema:
         quizz = await self._quizz_repository.get_quizz(quizz_id)
@@ -124,7 +117,7 @@ class QuizzService:
 
     async def delete_quizz(self, quizz_id: UUID) -> None:
         await self._quizz_repository.delete_quizz(quizz_id)
-    
+
     async def delete_question(self, question_id: UUID, quizz_id: UUID) -> None:
         if await self._quizz_repository.get_quizz_questions_count(quizz_id) < 2:
             raise QuizzError('Cannot delete last question')
@@ -134,7 +127,7 @@ class QuizzService:
         if question.quizz_id != quizz_id:
             raise QuizzNotFound()
         await self._quizz_repository.delete_question(question_id)
-    
+
     async def delete_answer(self, answer_id: UUID, quizz_id: UUID) -> None:
         answer = await self._quizz_repository.get_answer(answer_id)
         if not answer:
@@ -158,7 +151,7 @@ class QuizzService:
         quizz = await self._quizz_repository.update_quizz(quizz, quizz_data)
         await self._quizz_repository.commit()
         return QuizzWithNoQuestionsSchema.model_validate(quizz)
-    
+
     async def update_question(self, question_id: UUID, quizz_id: UUID, question_data: QuestionUpdateSchema) -> None:
         question = await self._quizz_repository.get_question(question_id)
         if not question:

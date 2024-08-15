@@ -11,13 +11,12 @@ class AnswerCreateSchema(BaseModel):
 
 
 class QuestionCreateSchema(BaseModel):
-
     @model_validator(mode='after')
     def check_answers_number(self) -> Self:
         if len(self.answers) < 2 or len(self.answers) > 4:
             raise ValueError('question must have at min 2 and at max 4 answers')
         return self
-    
+
     @model_validator(mode='after')
     def check_at_least_one_answer_is_correct(self) -> Self:
         if not any(answer.is_correct for answer in self.answers):
@@ -29,7 +28,6 @@ class QuestionCreateSchema(BaseModel):
 
 
 class QuizzCreateSchema(BaseModel):
-
     @model_validator(mode='after')
     def check_at_least_one_question(self) -> Self:
         if not self.questions:
@@ -46,7 +44,7 @@ class QuizzCreateSchema(BaseModel):
 class AnswerSchema(BaseModel):
     id: UUID
     text: str
-    
+
     model_config = ConfigDict(from_attributes=True)
 
 

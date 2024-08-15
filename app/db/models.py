@@ -97,7 +97,6 @@ class Question(ModelWithIdAndTimeStamps):
     quizz_id: Mapped[UUID] = mapped_column(ForeignKey('quizzes.id', ondelete='CASCADE'))
 
 
-
 class Answer(ModelWithIdAndTimeStamps):
     __tablename__ = 'answers'
 

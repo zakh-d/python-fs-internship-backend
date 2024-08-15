@@ -432,3 +432,17 @@ def test_canot_delete_only_correct_option(
     assert response.json()['detail'] == 'Cannot delete only correct answer'
 
    
+def test_cannot_update_only_correct_answer_to_false(
+    client: TestClient,
+    company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
+    auth_service: AuthenticationService,
+    test_quizz: QuizzSchema, 
+):
+    question = test_quizz.questions[0]
+    response = client.put(f'/quizzes/{test_quizz.id}/answer/{question.answers[1].id}', json={
+        'text': 'new option',
+        'is_correct': False
+    }, headers={
+        'Authorization': f'Bearer {auth_service.generate_jwt_token(company_and_users[1])}'
+    })
+    assert response.json()['detail'] == 'Question must have at least one correct answers'

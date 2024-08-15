@@ -152,6 +152,7 @@ async def delete_answer(
     await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
     await quizz_service.delete_answer(answer_id, quizz_id)
 
+
 @router.put('/{quizz_id}/answer/{answer_id}/')
 async def update_answer(
     quizz_id: UUID,
