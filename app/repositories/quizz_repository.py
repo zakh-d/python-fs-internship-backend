@@ -36,6 +36,9 @@ class QuizzRepository(RepositoryBase):
     async def get_question(self, question_id: UUID) -> Union[Question, None]:
         return await self._get_item_by_id(question_id, Question)
     
+    async def get_answer(self, answer_id: UUID) -> Union[Answer, None]:
+        return await self._get_item_by_id(answer_id, Answer)
+    
     async def get_company_quizzes(self, company_id: UUID, offset: int = 0, limit: int = 10) -> list[Quizz]:
         query = select(Quizz).where(Quizz.company_id == company_id).offset(offset).limit(limit)
         result = await self.db.execute(query)
@@ -60,6 +63,11 @@ class QuizzRepository(RepositoryBase):
         query = select(Answer).where(Answer.question_id == question_id)
         result = await self.db.execute(query)
         return result.scalars().all()
+    
+    async def get_question_answers_count(self, question_id: UUID) -> int:
+        query = select(func.count(Answer.id)).where(Answer.question_id == question_id)
+        result = await self.db.execute(query)
+        return result.scalar_one()
 
     async def delete_quizz(self, quizz_id: UUID) -> None:
         await self._delete_item_by_id(quizz_id, Quizz)
@@ -67,4 +75,8 @@ class QuizzRepository(RepositoryBase):
     
     async def delete_question(self, question_id: UUID) -> None:
         await self._delete_item_by_id(question_id, Question)
+        await self.db.commit()
+    
+    async def delete_answer(self, answer_id: UUID) -> None:
+        await self._delete_item_by_id(answer_id, Answer)
         await self.db.commit()

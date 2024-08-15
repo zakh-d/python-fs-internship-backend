@@ -100,7 +100,23 @@ class QuizzService:
             raise QuizzError('Quizz must have at least one question')
         question = await self._quizz_repository.delete_question(question_id)
         if not question:
-            raise QuizzNotFound()
+            raise QuizzNotFound('Question')
         if question.quizz_id != quizz_id:
             raise QuizzNotFound()
         await self._quizz_repository.delete_question(question_id)
+    
+    async def delete_answer(self, answer_id: UUID, quizz_id: UUID) -> None:
+        answer = await self._quizz_repository.get_answer(answer_id)
+        if not answer:
+            raise QuizzNotFound('Answer')
+        question = await self._quizz_repository.get_question(answer.question_id)
+        if await self._quizz_repository.get_question_answers_count(question.id) < 3:
+            raise QuizzError('Question must have at least two answer')
+        if answer.is_correct:
+            answers = await self._quizz_repository.get_question_answers(question.id)
+            correct_answers = [answer for answer in answers if answer.is_correct]
+            if len(correct_answers) < 2:
+                raise QuizzError('Cannot delete only correct answer')
+        if question.quizz_id != quizz_id:
+            raise QuizzNotFound()
+        await self._quizz_repository.delete_answer(answer_id)

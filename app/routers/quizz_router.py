@@ -72,3 +72,16 @@ async def delete_question(
     quizz = await quizz_service.get_quizz(quizz_id)
     await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
     await quizz_service.delete_question(question_id, quizz_id)
+
+
+@router.delete('/{quizz_id}/answer/{answer_id}/')
+async def delete_answer(
+    quizz_id: UUID,
+    answer_id: UUID,
+    quizz_service: Annotated[QuizzService, Depends()],
+    company_service: Annotated[CompanyService, Depends()],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+) -> None:
+    quizz = await quizz_service.get_quizz(quizz_id)
+    await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
+    await quizz_service.delete_answer(answer_id, quizz_id)
