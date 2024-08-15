@@ -15,7 +15,7 @@ from app.schemas.quizz_schema import (
     QuizzWithCorrectAnswersSchema,
     QuizzWithNoQuestionsSchema,
 )
-from app.services.quizz_service.exceptions import QuizzNotFound
+from app.services.quizz_service.exceptions import QuizzError, QuizzNotFound
 
 
 class QuizzService:
@@ -94,3 +94,13 @@ class QuizzService:
 
     async def delete_quizz(self, quizz_id: UUID) -> None:
         await self._quizz_repository.delete_quizz(quizz_id)
+    
+    async def delete_question(self, question_id: UUID, quizz_id: UUID) -> None:
+        if await self._quizz_repository.get_quizz_questions_count(quizz_id) < 2:
+            raise QuizzError('Quizz must have at least one question')
+        question = await self._quizz_repository.delete_question(question_id)
+        if not question:
+            raise QuizzNotFound()
+        if question.quizz_id != quizz_id:
+            raise QuizzNotFound()
+        await self._quizz_repository.delete_question(question_id)
