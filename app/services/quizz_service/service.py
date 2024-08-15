@@ -7,6 +7,7 @@ from app.repositories.quizz_repository import QuizzRepository
 from app.schemas.quizz_schema import (
     AnswerSchema,
     AnswerWithCorrectSchema,
+    QuestionCreateSchema,
     QuestionSchema,
     QuestionWithCorrectAnswerSchema,
     QuizzCreateSchema,
@@ -55,6 +56,18 @@ class QuizzService:
                     question_response_schema.answers.append(AnswerSchema.model_validate(answer))
                 response_schema.questions.append(question_response_schema)
             return response_schema
+
+    async def add_question_to_quizz(self, quizz_id: UUID, question_data: QuestionCreateSchema) -> None:
+        async with self._quizz_repository.unit():
+            question = await self._quizz_repository.create_question(
+                text=question_data.text,
+                quizz_id=quizz_id,
+            )
+            for answer_data in question_data.answers:
+                await self._quizz_repository.create_answer(
+                    **answer_data.model_dump(),
+                    question_id=question.id
+                )
 
     async def get_quizz(self, quizz_id: UUID) -> QuizzWithNoQuestionsSchema:
         quizz = await self._quizz_repository.get_quizz(quizz_id)
