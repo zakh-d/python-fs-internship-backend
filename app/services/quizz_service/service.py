@@ -7,13 +7,16 @@ from app.repositories.quizz_repository import QuizzRepository
 from app.schemas.quizz_schema import (
     AnswerCreateSchema,
     AnswerSchema,
+    AnswerUpdateSchema,
     AnswerWithCorrectSchema,
     QuestionCreateSchema,
     QuestionSchema,
+    QuestionUpdateSchema,
     QuestionWithCorrectAnswerSchema,
     QuizzCreateSchema,
     QuizzListSchema,
     QuizzSchema,
+    QuizzUpdateSchema,
     QuizzWithCorrectAnswersSchema,
     QuizzWithNoQuestionsSchema,
 )
@@ -124,7 +127,7 @@ class QuizzService:
     
     async def delete_question(self, question_id: UUID, quizz_id: UUID) -> None:
         if await self._quizz_repository.get_quizz_questions_count(quizz_id) < 2:
-            raise QuizzError('Quizz must have at least one question')
+            raise QuizzError('Cannot delete last question')
         question = await self._quizz_repository.delete_question(question_id)
         if not question:
             raise QuizzNotFound('Question')
@@ -147,3 +150,35 @@ class QuizzService:
         if question.quizz_id != quizz_id:
             raise QuizzNotFound()
         await self._quizz_repository.delete_answer(answer_id)
+
+    async def update_quizz(self, quizz_id: UUID, quizz_data: QuizzUpdateSchema) -> QuizzWithNoQuestionsSchema:
+        quizz = await self._quizz_repository.get_quizz(quizz_id)
+        if not quizz:
+            raise QuizzNotFound()
+        quizz = await self._quizz_repository.update_quizz(quizz, quizz_data)
+        await self._quizz_repository.commit()
+        return QuizzWithNoQuestionsSchema.model_validate(quizz)
+    
+    async def update_question(self, question_id: UUID, quizz_id: UUID, question_data: QuestionUpdateSchema) -> None:
+        question = await self._quizz_repository.get_question(question_id)
+        if not question:
+            raise QuizzNotFound('Question')
+        if question.quizz_id != quizz_id:
+            raise QuizzNotFound('Question')
+        await self._quizz_repository.update_question(question, question_data)
+        await self._quizz_repository.commit()
+
+    async def update_answer(self, answer_id: UUID, quizz_id: UUID, answer_data: AnswerUpdateSchema) -> None:
+        answer = await self._quizz_repository.get_answer(answer_id)
+        if not answer:
+            raise QuizzNotFound('Answer')
+        question = await self._quizz_repository.get_question(answer.question_id)
+        if question.quizz_id != quizz_id:
+            raise QuizzNotFound('Answer')
+        if answer.is_correct and not answer_data.is_correct:
+            answers = await self._quizz_repository.get_question_answers(question.id)
+            correct_answers = [answer for answer in answers if answer.is_correct]
+            if len(correct_answers) < 2:
+                raise QuizzError('Question must have at least one correct answers')
+        await self._quizz_repository.update_answer(answer, answer_data)
+        await self._quizz_repository.commit()

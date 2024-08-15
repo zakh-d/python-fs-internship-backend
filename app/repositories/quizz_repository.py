@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 
 from app.db.models import Answer, Question, Quizz
 from app.repositories.repository_base import RepositoryBase
+from app.schemas.quizz_schema import AnswerUpdateSchema, QuestionUpdateSchema, QuizzUpdateSchema
 
 
 class QuizzRepository(RepositoryBase):
@@ -80,3 +81,25 @@ class QuizzRepository(RepositoryBase):
     async def delete_answer(self, answer_id: UUID) -> None:
         await self._delete_item_by_id(answer_id, Answer)
         await self.db.commit()
+    
+
+    async def update_quizz(self, quizz: Quizz, new_data: QuizzUpdateSchema) -> Quizz:
+        for field in new_data.dict(exclude_unset=True):
+            setattr(quizz, field, new_data.dict()[field])
+        await self.db.flush()
+        await self.db.refresh(quizz)
+        return quizz
+    
+    async def update_question(self, question: Question, new_data: QuestionUpdateSchema) -> Question:
+        for field in new_data.dict(exclude_unset=True):
+            setattr(question, field, new_data.dict()[field])
+        await self.db.flush()
+        await self.db.refresh(question)
+        return question
+    
+    async def update_answer(self, answer: Answer, new_data: AnswerUpdateSchema) -> Answer:
+        for field in new_data.dict(exclude_unset=True):
+            setattr(answer, field, new_data.dict()[field])
+        await self.db.flush()
+        await self.db.refresh(answer)
+        return answer

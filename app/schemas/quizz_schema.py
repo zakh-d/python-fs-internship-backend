@@ -89,3 +89,18 @@ class QuizzWithCorrectAnswersSchema(QuizzSchema):
 class QuizzListSchema(BaseModel):
     quizzes: list[QuizzWithNoQuestionsSchema]
     total_count: int
+
+
+class AnswerUpdateSchema(BaseModel):
+    text: str = Field(max_length=250)
+    is_correct: bool
+
+
+class QuestionUpdateSchema(BaseModel):
+    text: str = Field(max_length=250)
+
+
+class QuizzUpdateSchema(BaseModel):
+    title: str = Field(max_length=50)
+    description: Optional[str] = Field(max_length=250, default=None)
+    frequency: int
