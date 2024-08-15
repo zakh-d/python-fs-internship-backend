@@ -4,7 +4,13 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from app.core.security import get_current_user
-from app.schemas.quizz_schema import QuestionCreateSchema, QuizzCreateSchema, QuizzSchema, QuizzWithCorrectAnswersSchema
+from app.schemas.quizz_schema import (
+    AnswerCreateSchema,
+    QuestionCreateSchema,
+    QuizzCreateSchema,
+    QuizzSchema,
+    QuizzWithCorrectAnswersSchema,
+)
 from app.schemas.user_shema import UserDetail
 from app.services.company_service.service import CompanyService
 from app.services.quizz_service.service import QuizzService
@@ -85,6 +91,21 @@ async def add_question_to_quizz(
     quizz = await quizz_service.get_quizz(quizz_id)
     await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
     await quizz_service.add_question_to_quizz(quizz_id, question_data)
+    return await quizz_service.fetch_quizz_questions(quizz)
+
+
+@router.post('/{quizz_id}/question/{question_id}/answer/')
+async def add_answer_to_question(
+    quizz_id: UUID,
+    question_id: UUID,
+    answer_data: AnswerCreateSchema,
+    quizz_service: Annotated[QuizzService, Depends()],
+    company_service: Annotated[CompanyService, Depends()],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+) -> QuizzSchema:
+    quizz = await quizz_service.get_quizz(quizz_id)
+    await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
+    await quizz_service.add_answer_to_question(quizz_id, question_id, answer_data)
     return await quizz_service.fetch_quizz_questions(quizz)
 
 

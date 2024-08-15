@@ -5,6 +5,7 @@ from fastapi import Depends
 
 from app.repositories.quizz_repository import QuizzRepository
 from app.schemas.quizz_schema import (
+    AnswerCreateSchema,
     AnswerSchema,
     AnswerWithCorrectSchema,
     QuestionCreateSchema,
@@ -68,6 +69,19 @@ class QuizzService:
                     **answer_data.model_dump(),
                     question_id=question.id
                 )
+    
+    async def add_answer_to_question(self, quizz_id: UUID, question_id: UUID, answer_data: AnswerCreateSchema) -> None:
+        question = await self._quizz_repository.get_question(question_id)
+        if question.quizz_id != quizz_id:
+            raise QuizzNotFound('Question')
+        if await self._quizz_repository.get_question_answers_count(question_id) == 4:
+            raise QuizzError('Question can have max 4 answers')
+        await self._quizz_repository.create_answer(
+            **answer_data.model_dump(),
+            question_id=question_id
+        )
+        await self._quizz_repository.commit()
+        
 
     async def get_quizz(self, quizz_id: UUID) -> QuizzWithNoQuestionsSchema:
         quizz = await self._quizz_repository.get_quizz(quizz_id)
