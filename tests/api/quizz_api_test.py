@@ -383,3 +383,52 @@ def test_does_not_expose_correct_answers(
     })
 
     assert all('is_correct' not in answer for question in response.json()['questions'] for answer in question['answers'])
+
+
+def test_cannot_delete_only_question(
+    client: TestClient,
+    company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
+    auth_service: AuthenticationService,
+    test_quizz: QuizzSchema,
+):
+    response = client.delete(f'/quizzes/{test_quizz.id}/question/{test_quizz.questions[0].id}', headers={
+        'Authorization': f'Bearer {auth_service.generate_jwt_token(company_and_users[1])}'
+    })
+
+    assert response.status_code == 400
+    assert response.json()['detail'] == 'Cannot delete last question'
+
+
+@pytest.mark.asyncio
+async def test_cannot_delete_last_of_two_answers(
+    client: TestClient,
+    company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
+    auth_service: AuthenticationService,
+    test_quizz: QuizzSchema,
+    quizz_service: QuizzService
+):
+    question = test_quizz.questions[0]
+    await quizz_service.delete_answer(question.answers[2].id, test_quizz.id)
+    response = client.delete(f'/quizzes/{test_quizz.id}/answer/{question.answers[0].id}', headers={
+        'Authorization': f'Bearer {auth_service.generate_jwt_token(company_and_users[1])}'
+    })
+
+    assert response.status_code == 400
+    assert response.json()['detail'] == 'Question must have at least two answer'
+
+
+def test_canot_delete_only_correct_option(
+    client: TestClient,
+    company_and_users: tuple[CompanySchema, UserSchema, UserSchema],
+    auth_service: AuthenticationService,
+    test_quizz: QuizzSchema,
+):
+    question = test_quizz.questions[0]
+    response = client.delete(f'/quizzes/{test_quizz.id}/answer/{question.answers[1].id}', headers={
+        'Authorization': f'Bearer {auth_service.generate_jwt_token(company_and_users[1])}'
+    })
+
+    assert response.status_code == 400
+    assert response.json()['detail'] == 'Cannot delete only correct answer'
+
+   
