@@ -90,10 +90,11 @@ async def delete_question(
     quizz_service: Annotated[QuizzService, Depends()],
     company_service: Annotated[CompanyService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
-) -> None:
+) -> QuizzWithCorrectAnswersSchema:
     quizz = await quizz_service.get_quizz(quizz_id)
     await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
     await quizz_service.delete_question(question_id, quizz_id)
+    return await quizz_service.fetch_quizz_questions_with_correct_answers(quizz)
 
 
 @router.put('/{quizz_id}/question/{question_id}/')
@@ -108,7 +109,7 @@ async def update_question(
     quizz = await quizz_service.get_quizz(quizz_id)
     await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
     await quizz_service.update_question(question_id, quizz_id, question_data)
-    return await quizz_service.fetch_quizz_questions(quizz)
+    return await quizz_service.fetch_quizz_questions_with_correct_answers(quizz)
 
 
 @router.post('/{quizz_id}/question/')
@@ -122,7 +123,7 @@ async def add_question_to_quizz(
     quizz = await quizz_service.get_quizz(quizz_id)
     await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
     await quizz_service.add_question_to_quizz(quizz_id, question_data)
-    return await quizz_service.fetch_quizz_questions(quizz)
+    return await quizz_service.fetch_quizz_questions_with_correct_answers(quizz)
 
 
 @router.post('/{quizz_id}/question/{question_id}/answer/')
@@ -137,7 +138,7 @@ async def add_answer_to_question(
     quizz = await quizz_service.get_quizz(quizz_id)
     await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
     await quizz_service.add_answer_to_question(quizz_id, question_id, answer_data)
-    return await quizz_service.fetch_quizz_questions(quizz)
+    return await quizz_service.fetch_quizz_questions_with_correct_answers(quizz)
 
 
 @router.delete('/{quizz_id}/answer/{answer_id}/')
@@ -147,10 +148,11 @@ async def delete_answer(
     quizz_service: Annotated[QuizzService, Depends()],
     company_service: Annotated[CompanyService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
-) -> None:
+) -> QuizzWithCorrectAnswersSchema:
     quizz = await quizz_service.get_quizz(quizz_id)
     await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
     await quizz_service.delete_answer(answer_id, quizz_id)
+    return await quizz_service.fetch_quizz_questions_with_correct_answers(quizz)
 
 
 @router.put('/{quizz_id}/answer/{answer_id}/')
@@ -165,4 +167,4 @@ async def update_answer(
     quizz = await quizz_service.get_quizz(quizz_id)
     await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
     await quizz_service.update_answer(answer_id, quizz_id, answer_data)
-    return await quizz_service.fetch_quizz_questions(quizz)
+    return await quizz_service.fetch_quizz_questions_with_correct_answers(quizz)
