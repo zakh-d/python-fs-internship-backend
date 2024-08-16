@@ -105,7 +105,7 @@ async def update_question(
     quizz_service: Annotated[QuizzService, Depends()],
     company_service: Annotated[CompanyService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
-) -> QuizzSchema:
+) -> QuizzWithCorrectAnswersSchema:
     quizz = await quizz_service.get_quizz(quizz_id)
     await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
     await quizz_service.update_question(question_id, quizz_id, question_data)

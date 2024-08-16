@@ -50,7 +50,7 @@ class QuizzRepository(RepositoryBase):
         return result.scalar_one()
 
     async def get_quizz_questions(self, quizz_id: UUID) -> list[Question]:
-        query = select(Question).where(Question.quizz_id == quizz_id)
+        query = select(Question).where(Question.quizz_id == quizz_id).order_by(Question.id)
         result = await self.db.execute(query)
         return result.scalars().all()
 
