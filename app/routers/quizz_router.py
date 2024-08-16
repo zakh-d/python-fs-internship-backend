@@ -119,7 +119,7 @@ async def add_question_to_quizz(
     quizz_service: Annotated[QuizzService, Depends()],
     company_service: Annotated[CompanyService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
-) -> QuizzSchema:
+) -> QuizzWithCorrectAnswersSchema:
     quizz = await quizz_service.get_quizz(quizz_id)
     await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
     await quizz_service.add_question_to_quizz(quizz_id, question_data)
@@ -134,7 +134,7 @@ async def add_answer_to_question(
     quizz_service: Annotated[QuizzService, Depends()],
     company_service: Annotated[CompanyService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
-) -> QuizzSchema:
+) -> QuizzWithCorrectAnswersSchema:
     quizz = await quizz_service.get_quizz(quizz_id)
     await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
     await quizz_service.add_answer_to_question(quizz_id, question_id, answer_data)
@@ -163,7 +163,7 @@ async def update_answer(
     quizz_service: Annotated[QuizzService, Depends()],
     company_service: Annotated[CompanyService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
-) -> QuizzSchema:
+) -> QuizzWithCorrectAnswersSchema:
     quizz = await quizz_service.get_quizz(quizz_id)
     await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
     await quizz_service.update_answer(answer_id, quizz_id, answer_data)
