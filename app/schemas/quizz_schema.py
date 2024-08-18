@@ -102,3 +102,17 @@ class QuizzUpdateSchema(BaseModel):
     title: str = Field(max_length=50)
     description: Optional[str] = Field(max_length=250, default=None)
     frequency: int
+
+
+class QuestionCompletionSchema(BaseModel):
+    question_id: UUID
+    answer_ids: set[UUID]
+
+
+class QuizzCompletionSchema(BaseModel):
+    quizz_id: UUID
+    questions: list[QuestionCompletionSchema]
+
+
+class QuizzResultSchema(BaseModel):
+    score: int = Field(ge=0, le=100)

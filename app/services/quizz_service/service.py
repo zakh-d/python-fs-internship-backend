@@ -1,3 +1,4 @@
+from math import floor
 from typing import Annotated
 from uuid import UUID
 
@@ -9,12 +10,15 @@ from app.schemas.quizz_schema import (
     AnswerSchema,
     AnswerUpdateSchema,
     AnswerWithCorrectSchema,
+    QuestionCompletionSchema,
     QuestionCreateSchema,
     QuestionSchema,
     QuestionUpdateSchema,
     QuestionWithCorrectAnswerSchema,
+    QuizzCompletionSchema,
     QuizzCreateSchema,
     QuizzListSchema,
+    QuizzResultSchema,
     QuizzSchema,
     QuizzUpdateSchema,
     QuizzWithCorrectAnswersSchema,
@@ -175,3 +179,32 @@ class QuizzService:
                 raise QuizzError('Question must have at least one correct answers')
         await self._quizz_repository.update_answer(answer, answer_data)
         await self._quizz_repository.commit()
+
+    async def evaluate_question(self, quizz_id: UUID, question_data: QuestionCompletionSchema) -> float:
+        question = await self._quizz_repository.get_question(question_data.question_id)
+        if not question:
+            raise QuizzNotFound('Question')
+        if question.quizz_id != quizz_id:
+            raise QuizzNotFound('Question')
+        answers = await self._quizz_repository.get_question_answers(question.id)
+        correct_answers_count = len([answer for answer in answers if answer.is_correct])
+        correct_responses = 0
+        for answer_id in question_data.answer_ids:
+            answer = await self._quizz_repository.get_answer(answer_id)
+            if not answer:
+                raise QuizzNotFound('Answer')
+            if answer.question_id != question.id:
+                raise QuizzNotFound('Answer')
+            if answer.is_correct:
+                correct_responses += 1
+            else:
+                correct_responses -= 1
+        correct_responses = max(0, correct_responses)
+        return correct_responses / correct_answers_count        
+
+    async def evaluate_quizz(self, data: QuizzCompletionSchema) -> QuizzResultSchema:
+        question_count = await self._quizz_repository.get_quizz_questions_count(data.quizz_id)
+        score = 0
+        for question in data.questions:
+            score += (await self.evaluate_question(data.quizz_id, question)) / question_count
+        return QuizzResultSchema(score=floor(score * 100))
