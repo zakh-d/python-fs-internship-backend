@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, status
@@ -77,6 +77,15 @@ async def delete_company(
     current_user: Annotated[UserDetail, Depends(get_current_user)],  # requires authentication
 ) -> None:
     return await company_service.delete_company(company_id, current_user)
+
+
+@router.get('/{company_id}/role/')
+async def get_user_role_in_company(
+    company_id: UUID,
+    company_service: Annotated[CompanyService, Depends()],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],  # requires authentication
+) -> Literal['owner', 'admin', 'member', 'none']:
+    return await company_service.get_user_role_in_company(company_id, current_user.id)
 
 
 @router.get('/{company_id}/invites/')

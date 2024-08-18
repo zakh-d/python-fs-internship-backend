@@ -1,4 +1,4 @@
-from typing import Annotated, Callable
+from typing import Annotated, Callable, Literal
 from uuid import UUID
 
 from fastapi import Depends
@@ -153,6 +153,23 @@ class CompanyService:
     async def delete_company(self, company_id: UUID, current_user: UserDetail) -> None:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_delete_permission)
         await self._company_repository.delete_company_by_id(company_id)
+
+    async def get_user_role_in_company(
+        self, company_id: UUID, user_id: UUID
+    ) -> Literal['none', 'member', 'admin', 'owner']:
+        company = await self.check_company_exists(company_id)
+        if company.owner_id == user_id:
+            return 'owner'
+        action = await self._company_action_repository.get_by_company_and_user(company_id, user_id)
+        if action is None:
+            if company.hidden:
+                raise CompanyNotFoundException(company_id)
+            return 'none'
+        if action.type == CompanyActionType.MEMBERSHIP:
+            return 'member'
+        if action.type == CompanyActionType.ADMIN:
+            return 'admin'
+        return 'none'
 
     async def invite_user(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> CompanyActionSchema:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)
