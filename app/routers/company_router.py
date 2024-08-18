@@ -13,7 +13,7 @@ from app.schemas.company_schema import (
     CompanySchema,
     CompanyUpdateSchema,
 )
-from app.schemas.quizz_schema import QuizzListSchema
+from app.schemas.quizz_schema import QuizzListSchema, QuizzResultSchema
 from app.schemas.user_shema import UserDetail, UserEmailSchema, UserIdSchema, UserInCompanyList, UserList
 from app.services.company_service.service import CompanyService
 from app.services.quizz_service.service import QuizzService
@@ -206,3 +206,14 @@ async def get_company_quizzes(
 ) -> QuizzListSchema:
     await company_service.check_is_member(company_id, current_user.id)
     return await quizz_service.get_company_quizzes(company_id, page, limit)
+
+
+@router.get('/{company_id}/quizzes/average/', tags=['quizzes', 'companies'])
+async def get_company_quizzes_average(
+    company_id: UUID,
+    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends()],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+) -> QuizzResultSchema:
+    await company_service.check_is_member(company_id, current_user.id)
+    return await quizz_service.get_average_score_by_company(company_id)

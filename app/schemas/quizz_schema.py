@@ -115,4 +115,4 @@ class QuizzCompletionSchema(BaseModel):
 
 
 class QuizzResultSchema(BaseModel):
-    score: int = Field(ge=0, le=100)
+    score: float

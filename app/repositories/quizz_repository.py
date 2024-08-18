@@ -108,3 +108,18 @@ class QuizzRepository(RepositoryBase):
         await self.db.flush()
         await self.db.refresh(quizz_result)
         return quizz_result
+
+    async def get_average_score_by_company(self, company_id: UUID) -> float:
+        query = select(func.avg(QuizzResult.score)).where(QuizzResult.company_id == company_id)
+        result = await self.db.execute(query)
+        return result.scalar_one()
+
+    async def get_average_score_by_user(self, user_id: UUID) -> float:
+        query = select(func.avg(QuizzResult.score)).where(QuizzResult.user_id == user_id)
+        result = await self.db.execute(query)
+        return result.scalar_one()
+    
+    async def get_average_score_by_quizz(self, quizz_id: UUID) -> float:
+        query = select(func.avg(QuizzResult.score)).where(QuizzResult.quizz_id == quizz_id)
+        result = await self.db.execute(query)
+        return result.scalar_one()
