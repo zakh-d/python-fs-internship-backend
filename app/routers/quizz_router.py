@@ -181,4 +181,4 @@ async def complete_quizz(
 ) -> QuizzResultSchema:
     quizz = await quizz_service.get_quizz(quizz_completion_data.quizz_id)
     await company_service.check_is_member(quizz.company_id, current_user.id)
-    return await quizz_service.evaluate_quizz(quizz_completion_data)
+    return await quizz_service.evaluate_quizz(quizz, quizz_completion_data, current_user)

@@ -24,6 +24,7 @@ from app.schemas.quizz_schema import (
     QuizzWithCorrectAnswersSchema,
     QuizzWithNoQuestionsSchema,
 )
+from app.schemas.user_shema import UserDetail
 from app.services.quizz_service.exceptions import QuizzError, QuizzNotFound
 
 
@@ -200,11 +201,20 @@ class QuizzService:
             else:
                 correct_responses -= 1
         correct_responses = max(0, correct_responses)
-        return correct_responses / correct_answers_count        
+        return correct_responses / correct_answers_count
 
-    async def evaluate_quizz(self, data: QuizzCompletionSchema) -> QuizzResultSchema:
+    async def evaluate_quizz(
+        self, quizz: QuizzWithNoQuestionsSchema, data: QuizzCompletionSchema, user: UserDetail
+    ) -> QuizzResultSchema:
         question_count = await self._quizz_repository.get_quizz_questions_count(data.quizz_id)
         score = 0
         for question in data.questions:
             score += (await self.evaluate_question(data.quizz_id, question)) / question_count
-        return QuizzResultSchema(score=floor(score * 100))
+        result = await self._quizz_repository.create_quizz_result(
+            user_id=user.id,
+            quizz_id=data.quizz_id,
+            company_id=quizz.company_id,
+            score=floor(score * 100),
+        )
+        await self._quizz_repository.commit()
+        return QuizzResultSchema(score=result.score)

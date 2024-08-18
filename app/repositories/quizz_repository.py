@@ -3,7 +3,7 @@ from uuid import UUID
 
 from sqlalchemy import func, select
 
-from app.db.models import Answer, Question, Quizz
+from app.db.models import Answer, Question, Quizz, QuizzResult
 from app.repositories.repository_base import RepositoryBase
 from app.schemas.quizz_schema import AnswerUpdateSchema, QuestionUpdateSchema, QuizzUpdateSchema
 
@@ -101,3 +101,10 @@ class QuizzRepository(RepositoryBase):
         await self.db.flush()
         await self.db.refresh(answer)
         return answer
+
+    async def create_quizz_result(self, user_id: UUID, quizz_id: UUID, company_id: UUID, score: int) -> QuizzResult:
+        quizz_result = QuizzResult(user_id=user_id, quizz_id=quizz_id, company_id=company_id, score=score)
+        self.db.add(quizz_result)
+        await self.db.flush()
+        await self.db.refresh(quizz_result)
+        return quizz_result
