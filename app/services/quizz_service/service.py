@@ -221,9 +221,9 @@ class QuizzService:
 
     async def get_average_score_by_company(self, company_id: UUID) -> QuizzResultSchema:
         return QuizzResultSchema(score=await self._quizz_repository.get_average_score_by_company(company_id))
-    
+
     async def get_average_score_by_user(self, user_id: UUID) -> QuizzResultSchema:
-        return QuizzResultSchema( score=await self._quizz_repository.get_average_score_by_user(user_id))
-    
+        return QuizzResultSchema(score=await self._quizz_repository.get_average_score_by_user(user_id))
+
     async def get_average_score_by_quizz(self, quizz_id: UUID) -> QuizzResultSchema:
         return QuizzResultSchema(score=await self._quizz_repository.get_average_score_by_quizz(quizz_id))

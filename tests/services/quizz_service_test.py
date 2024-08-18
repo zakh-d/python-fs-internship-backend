@@ -91,4 +91,3 @@ async def test_evaluate_quizz_wrong_answer_and_correct_answers_cancel_each_other
 
     result = await quizz_service.evaluate_quizz(test_quizz, completion, owner)
     assert result.score == 0
-        

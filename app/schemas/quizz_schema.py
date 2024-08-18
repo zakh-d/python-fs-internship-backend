@@ -110,6 +110,13 @@ class QuestionCompletionSchema(BaseModel):
 
 
 class QuizzCompletionSchema(BaseModel):
+    @model_validator(mode='after')
+    def check_questions_dont_have_duplicates(self) -> Self:
+        question_ids = [question.question_id for question in self.questions]
+        if len(question_ids) != len(set(question_ids)):
+            raise ValueError('questions must not have duplicates')
+        return self
+
     quizz_id: UUID
     questions: list[QuestionCompletionSchema]
 
