@@ -10,10 +10,13 @@ from app.db.db import async_session
 from app.repositories import UserRepository
 from app.repositories.company_action_repository import CompanyActionRepository
 from app.repositories.company_repository import CompanyRepository
+from app.repositories.quizz_repository import QuizzRepository
 from app.schemas.company_schema import CompanyCreateSchema, CompanySchema
+from app.schemas.quizz_schema import AnswerCreateSchema, QuestionCreateSchema, QuizzCreateSchema, QuizzSchema
 from app.schemas.user_shema import UserSchema, UserSignUpSchema
 from app.services.authentication_service.service import AuthenticationService
 from app.services.company_service.service import CompanyService
+from app.services.quizz_service.service import QuizzService
 from app.services.users_service import UserService
 
 
@@ -119,3 +122,43 @@ async def company_and_users(
     ), owner)
 
     return company, owner, test_user
+
+
+@pytest.fixture
+def quizz_repo(get_db):
+    return QuizzRepository(get_db)
+
+
+@pytest.fixture
+def quizz_service(quizz_repo):
+    return QuizzService(quizz_repo)
+
+@pytest.fixture
+async def test_quizz(quizz_service: QuizzService, company_and_users) -> QuizzSchema:
+    company, _, _ = company_and_users
+    quizz_data = QuizzCreateSchema(
+        title='Test quizz',
+        description='Test description',
+        frequency=1,
+        company_id=company.id,
+        questions=[
+            QuestionCreateSchema(
+                text='Test question',
+                answers=[
+                    AnswerCreateSchema(
+                        text='option 1',
+                        is_correct=False
+                    ),
+                    AnswerCreateSchema(
+                        text='option 2',
+                        is_correct=True
+                    ),
+                    AnswerCreateSchema(
+                        text='option 3',
+                        is_correct=False
+                    )
+                ]
+            )
+        ]
+    )
+    return await quizz_service.create_quizz(quizz_data, company.id)
