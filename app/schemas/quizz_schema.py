@@ -121,5 +121,19 @@ class QuizzCompletionSchema(BaseModel):
     questions: list[QuestionCompletionSchema]
 
 
+class ChoosenAnswerSchema(BaseModel):
+    is_correct: bool
+    answer_id: UUID
+
+
+class QuestionResultSchema(BaseModel):
+    question_id: UUID
+    choosen_answers: list[ChoosenAnswerSchema]
+
+
+class QuizzDetailResultSchema(BaseModel):
+    questions: list[QuestionResultSchema]
+
+
 class QuizzResultSchema(BaseModel):
     score: float
