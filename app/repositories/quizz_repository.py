@@ -138,7 +138,7 @@ class QuizzRepository(RepositoryBase):
         async with redis.pipeline(transaction=True) as pipe:
             for question in data.questions:
                 for answer in question.choosen_answers:
-                    key = f'{user_id}:{company_id}:{quizz_id}:{question.question_id}:{answer.answer_id}'
+                    key = f'answer:{user_id}:{company_id}:{quizz_id}:{question.question_id}:{answer.answer_id}'
                     pipe.set(key, 1 if answer.is_correct else 0, ex=_48_hours)
                     
             await pipe.execute()
