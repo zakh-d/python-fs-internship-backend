@@ -11,7 +11,11 @@ class CompanyActionRepository(RepositoryBase):
     async def get_company_action_for_company_by_type(
         self, company_id: UUID, _type: CompanyActionType
     ) -> list[CompanyAction]:
-        query = select(CompanyAction).where(and_(CompanyAction.company_id == company_id, CompanyAction.type == _type))
+        query = (
+            select(CompanyAction)
+            .where(and_(CompanyAction.company_id == company_id, CompanyAction.type == _type))
+            .order_by(CompanyAction.created_at)
+        )
         result = await self.db.execute(query)
         return result.scalars().all()
 
@@ -20,6 +24,7 @@ class CompanyActionRepository(RepositoryBase):
             select(User)
             .join_from(CompanyAction, User)
             .where(and_(CompanyAction.company_id == company_id, CompanyAction.type == relation))
+            .order_by(User.created_at)
         )
         result = await self.db.execute(query)
         return result.scalars().all()
@@ -29,6 +34,7 @@ class CompanyActionRepository(RepositoryBase):
             select(Company)
             .join_from(CompanyAction, Company)
             .where(and_(CompanyAction.user_id == user_id, CompanyAction.type == relation))
+            .order_by(Company.created_at)
         )
         result = await self.db.execute(query)
         return result.scalars().all()

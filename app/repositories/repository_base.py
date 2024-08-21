@@ -17,13 +17,15 @@ class RepositoryBase:
         self.db = db
 
     async def _get_all_items(self, offset: int, limit: int, table: T) -> list[T]:
-        results = await self.db.execute(select(table).offset(offset).limit(limit))
+        query = select(table).offset(offset).limit(limit).order_by(table.created_at)
+        results = await self.db.execute(query)
         return results.scalars().all()
 
     async def _get_all_meeting_condition(
         self, offset: int, limit: int, condition: ColumnElement[bool], table: T
     ) -> list[T]:
-        results = await self.db.execute(select(table).where(condition).offset(offset).limit(limit))
+        query = select(table).where(condition).offset(offset).limit(limit).order_by(table.created_at)
+        results = await self.db.execute(query)
         return results.scalars().all()
 
     async def _get_items_count(self, table: T) -> int:
