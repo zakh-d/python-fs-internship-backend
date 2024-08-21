@@ -27,8 +27,8 @@ def upgrade() -> None:
         sa.Column('company_id', sa.Uuid(), nullable=False),
         sa.Column('frequency', sa.Integer(), nullable=False),
         sa.Column('id', sa.Uuid(), nullable=False),
-        sa.Column('created_at', sa.DateTime(), server_default='now()', nullable=False),
-        sa.Column('updated_at', sa.DateTime(), server_default='now()', nullable=False),
+        sa.Column('created_at', sa.DateTime(), server_default=sa.func.now(), nullable=False),
+        sa.Column('updated_at', sa.DateTime(), server_default=sa.func.now(), nullable=False),
         sa.ForeignKeyConstraint(['company_id'], ['companies.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id'),
     )
@@ -37,8 +37,8 @@ def upgrade() -> None:
         sa.Column('text', sa.String(length=250), nullable=False),
         sa.Column('quizz_id', sa.Uuid(), nullable=False),
         sa.Column('id', sa.Uuid(), nullable=False),
-        sa.Column('created_at', sa.DateTime(), server_default='now()', nullable=False),
-        sa.Column('updated_at', sa.DateTime(), server_default='now()', nullable=False),
+        sa.Column('created_at', sa.DateTime(), server_default=sa.func.now(), nullable=False),
+        sa.Column('updated_at', sa.DateTime(), server_default=sa.func.now(), nullable=False),
         sa.ForeignKeyConstraint(['quizz_id'], ['quizzes.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id'),
     )
@@ -48,8 +48,8 @@ def upgrade() -> None:
         sa.Column('question_id', sa.Uuid(), nullable=False),
         sa.Column('is_correct', sa.Boolean(), nullable=False),
         sa.Column('id', sa.Uuid(), nullable=False),
-        sa.Column('created_at', sa.DateTime(), server_default='now()', nullable=False),
-        sa.Column('updated_at', sa.DateTime(), server_default='now()', nullable=False),
+        sa.Column('created_at', sa.DateTime(), server_default=sa.func.now(), nullable=False),
+        sa.Column('updated_at', sa.DateTime(), server_default=sa.func.now(), nullable=False),
         sa.ForeignKeyConstraint(['question_id'], ['questions.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id'),
     )

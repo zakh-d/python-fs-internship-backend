@@ -28,8 +28,8 @@ def upgrade() -> None:
             'type', sa.Enum('INVITATION', 'REQUEST', 'MEMBERSHIP', 'ADMIN', name='companyactiontype'), nullable=False
         ),
         sa.Column('id', sa.Uuid(), nullable=False),
-        sa.Column('created_at', sa.DateTime(), server_default='now()', nullable=False),
-        sa.Column('updated_at', sa.DateTime(), server_default='now()', nullable=False),
+        sa.Column('created_at', sa.DateTime(), server_default=sa.func.now(), nullable=False),
+        sa.Column('updated_at', sa.DateTime(), server_default=sa.func.now(), nullable=False),
         sa.ForeignKeyConstraint(['company_id'], ['companies.id'], ondelete='CASCADE'),
         sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id'),

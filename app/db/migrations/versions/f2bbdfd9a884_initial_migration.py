@@ -28,8 +28,8 @@ def upgrade() -> None:
         sa.Column('email', sa.String(length=50), nullable=False),
         sa.Column('hashed_password', sa.String(length=256), nullable=False),
         sa.Column('id', sa.Uuid(), nullable=False),
-        sa.Column('created_at', sa.DateTime(), server_default='now()', nullable=False),
-        sa.Column('updated_at', sa.DateTime(), server_default='now()', nullable=False),
+        sa.Column('created_at', sa.DateTime(), server_default=sa.func.now(), nullable=False),
+        sa.Column('updated_at', sa.DateTime(), server_default=sa.func.now(), nullable=False),
         sa.PrimaryKeyConstraint('id'),
     )
 
