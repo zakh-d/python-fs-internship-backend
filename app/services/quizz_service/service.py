@@ -76,8 +76,8 @@ class QuizzService:
             raise QuizzNotFound('Question')
         if await self._quizz_repository.get_question_answers_count(question_id) == 4:
             raise QuizzError('Question can have max 4 answers')
-        await self._quizz_repository.create_answer(**answer_data.model_dump(), question_id=question_id)
-        await self._quizz_repository.commit()
+        async with self._quizz_repository.unit():
+            await self._quizz_repository.create_answer(**answer_data.model_dump(), question_id=question_id)
 
     async def get_quizz(self, quizz_id: UUID) -> QuizzWithNoQuestionsSchema:
         quizz = await self._quizz_repository.get_quizz(quizz_id)
@@ -148,8 +148,8 @@ class QuizzService:
         quizz = await self._quizz_repository.get_quizz(quizz_id)
         if not quizz:
             raise QuizzNotFound()
-        quizz = await self._quizz_repository.update_quizz(quizz, quizz_data)
-        await self._quizz_repository.commit()
+        async with self._quizz_repository.unit():
+            quizz = await self._quizz_repository.update_quizz(quizz, quizz_data)
         return QuizzWithNoQuestionsSchema.model_validate(quizz)
 
     async def update_question(self, question_id: UUID, quizz_id: UUID, question_data: QuestionUpdateSchema) -> None:
@@ -158,8 +158,8 @@ class QuizzService:
             raise QuizzNotFound('Question')
         if question.quizz_id != quizz_id:
             raise QuizzNotFound('Question')
-        await self._quizz_repository.update_question(question, question_data)
-        await self._quizz_repository.commit()
+        async with self._quizz_repository.unit():
+            await self._quizz_repository.update_question(question, question_data)
 
     async def update_answer(self, answer_id: UUID, quizz_id: UUID, answer_data: AnswerUpdateSchema) -> None:
         answer = await self._quizz_repository.get_answer(answer_id)
@@ -173,5 +173,5 @@ class QuizzService:
             correct_answers = [answer for answer in answers if answer.is_correct]
             if len(correct_answers) < 2:
                 raise QuizzError('Question must have at least one correct answers')
-        await self._quizz_repository.update_answer(answer, answer_data)
-        await self._quizz_repository.commit()
+        async with self._quizz_repository.unit():
+            await self._quizz_repository.update_answer(answer, answer_data)
