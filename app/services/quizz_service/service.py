@@ -116,17 +116,17 @@ class QuizzService:
         )
 
     async def delete_quizz(self, quizz_id: UUID) -> None:
-        await self._quizz_repository.delete_quizz(quizz_id)
+        await self._quizz_repository.delete_quizz_and_commit(quizz_id)
 
     async def delete_question(self, question_id: UUID, quizz_id: UUID) -> None:
         if await self._quizz_repository.get_quizz_questions_count(quizz_id) < 2:
             raise QuizzError('Cannot delete last question')
-        question = await self._quizz_repository.delete_question(question_id)
+        question = await self._quizz_repository.delete_question_and_commit(question_id)
         if not question:
             raise QuizzNotFound('Question')
         if question.quizz_id != quizz_id:
             raise QuizzNotFound()
-        await self._quizz_repository.delete_question(question_id)
+        await self._quizz_repository.delete_question_and_commit(question_id)
 
     async def delete_answer(self, answer_id: UUID, quizz_id: UUID) -> None:
         answer = await self._quizz_repository.get_answer(answer_id)
@@ -142,7 +142,7 @@ class QuizzService:
                 raise QuizzError('Cannot delete only correct answer')
         if question.quizz_id != quizz_id:
             raise QuizzNotFound()
-        await self._quizz_repository.delete_answer(answer_id)
+        await self._quizz_repository.delete_answer_and_commit(answer_id)
 
     async def update_quizz(self, quizz_id: UUID, quizz_data: QuizzUpdateSchema) -> QuizzWithNoQuestionsSchema:
         quizz = await self._quizz_repository.get_quizz(quizz_id)
