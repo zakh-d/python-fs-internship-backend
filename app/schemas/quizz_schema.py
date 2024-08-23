@@ -52,13 +52,17 @@ class AnswerWithCorrectSchema(AnswerSchema):
     is_correct: bool
 
 
-class QuestionSchema(BaseModel):
+class QuestionBase(BaseModel):
     id: UUID
     text: str
+
+
+class QuestionSchema(QuestionBase):
     answers: list[AnswerSchema]
+    multiple: bool
 
 
-class QuestionWithCorrectAnswerSchema(QuestionSchema):
+class QuestionWithCorrectAnswerSchema(QuestionBase):
     answers: list[AnswerWithCorrectSchema]
 
 

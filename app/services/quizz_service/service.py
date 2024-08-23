@@ -57,6 +57,7 @@ class QuizzService:
                     **question_data.model_dump(exclude={'answers'}),
                     answers=[],
                     id=question.id,
+                    multiple=len(list(filter(lambda answer: answer.is_correct, question_data.answers))) > 1,
                 )
 
                 for answer_data in question_data.answers:
@@ -97,8 +98,10 @@ class QuizzService:
         quizz = QuizzSchema(**quizz_without_questions.model_dump(), questions=[])
         questions = await self._quizz_repository.get_quizz_questions(quizz.id)
         for question in questions:
-            question_schema = QuestionSchema(id=question.id, text=question.text, answers=[])
+            question_schema = QuestionSchema(id=question.id, text=question.text, answers=[], multiple=False)
             answers = await self._quizz_repository.get_question_answers(question.id)
+            if len(list(filter(lambda answer: answer.is_correct, answers))) > 1:
+                question_schema.multiple = True
             question_schema.answers = [AnswerSchema.model_validate(answer) for answer in answers]
             quizz.questions.append(question_schema)
         return quizz
