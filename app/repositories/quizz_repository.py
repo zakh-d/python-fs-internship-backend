@@ -156,6 +156,18 @@ class QuizzRepository(RepositoryBase):
 
             await pipe.execute()
         await redis.close()
+    
+    async def delete_cached_quizz_for_user(self, user_id: UUID, quizz_id: UUID) -> None:
+        redis = await get_redis_client()
+        key = self._create_key(
+            user_id=user_id,
+            company_id='*',
+            quizz_id=quizz_id,
+            question_id='*',
+            answer_id='*')
+        keys = await redis.keys(key)
+        await redis.delete(*keys)
+        await redis.close()
 
     def _parse_key(self, key: str) -> tuple[UUID, UUID, UUID, UUID, UUID]:
         _, user_id, company_id, quizz_id, question_id, answer_id = key.split(':')

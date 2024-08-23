@@ -237,6 +237,7 @@ class QuizzService:
             score=floor(score * 100),
         )
         await self._quizz_repository.commit()
+        await self._quizz_repository.delete_cached_quizz_for_user(user.id, data.quizz_id)
         await self._quizz_repository.cache_quizz_result(
             user_id=user.id, company_id=quizz.company_id, quizz_id=data.quizz_id, data=asssesment
         )
