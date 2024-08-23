@@ -1,7 +1,7 @@
 from typing import Literal, Optional, Union
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 
 from app.db.models import Answer, Question, Quizz, QuizzResult
 from app.redis import get_redis_client
@@ -119,6 +119,15 @@ class QuizzRepository(RepositoryBase):
         await self.db.refresh(quizz_result)
         return quizz_result
 
+    async def get_latest_quizz_result(self, user_id: UUID, quizz_id: UUID) -> Union[QuizzResult, None]:
+        query = (
+            select(QuizzResult)
+            .where(and_(QuizzResult.user_id == user_id, QuizzResult.quizz_id == quizz_id))
+            .order_by(QuizzResult.created_at.desc())
+        )
+        result = await self.db.execute(query)
+        return result.scalars().first()
+
     async def get_average_score_by_company(self, company_id: UUID) -> float:
         query = select(func.avg(QuizzResult.score)).where(QuizzResult.company_id == company_id)
         result = await self.db.execute(query)
@@ -172,11 +181,7 @@ class QuizzRepository(RepositoryBase):
             answer_id='*',
         )
         keys = await redis.keys(key)
-        print(key)
-        print('AAAAAAAA')
-        print(keys)
         responses = await redis.mget(keys)
-        print(responses)
         keys = [key.decode() for key in keys]
         result = QuizzDetailResultSchema(questions=[])
         for key, response in zip(keys, responses):

@@ -10,9 +10,11 @@ from app.schemas.quizz_schema import (
     AnswerSchema,
     AnswerUpdateSchema,
     AnswerWithCorrectSchema,
+    ChoosenAnswerDisplaySchema,
     ChoosenAnswerSchema,
     QuestionCompletionSchema,
     QuestionCreateSchema,
+    QuestionResultDisplaySchema,
     QuestionResultSchema,
     QuestionSchema,
     QuestionUpdateSchema,
@@ -21,6 +23,7 @@ from app.schemas.quizz_schema import (
     QuizzCreateSchema,
     QuizzDetailResultSchema,
     QuizzListSchema,
+    QuizzResultDisplaySchema,
     QuizzResultSchema,
     QuizzSchema,
     QuizzUpdateSchema,
@@ -248,8 +251,32 @@ class QuizzService:
     async def get_average_score_by_quizz(self, quizz_id: UUID) -> QuizzResultSchema:
         return QuizzResultSchema(score=await self._quizz_repository.get_average_score_by_quizz(quizz_id))
 
-    async def get_cached_user_response(self, user_id: UUID, quizz_id: UUID) -> QuizzDetailResultSchema:
+    async def get_cached_user_response(self, user_id: UUID, quizz_id: UUID) -> QuizzResultDisplaySchema:
+        quizz = await self.get_quizz(quizz_id)
+        quizz = await self.fetch_quizz_questions(quizz)
+
         result = await self._quizz_repository.get_user_quizz_cache_keys(user_id, quizz_id)
         if len(result.questions) == 0:
             raise QuizzNotFound('User response')
-        return result
+
+        quizz_result = await self._quizz_repository.get_latest_quizz_result(user_id, quizz_id)
+        if not quizz_result:
+            raise QuizzNotFound('Quizz result')
+
+        questions_text_by_ids = {question.id: question.text for question in quizz.questions}
+        answers_text_by_ids = {answer.id: answer.text for question in quizz.questions for answer in question.answers}
+        result_display = QuizzResultDisplaySchema(score=quizz_result.score, questions=[])
+
+        for question in result.questions:
+            question_text = questions_text_by_ids[question.question_id]
+            choosen_answers = []
+            for choosen_answer in question.choosen_answers:
+                answer_text = answers_text_by_ids[choosen_answer.answer_id]
+                choosen_answers.append(
+                    ChoosenAnswerDisplaySchema(text=answer_text, is_correct=choosen_answer.is_correct)
+                )
+            result_display.questions.append(
+                QuestionResultDisplaySchema(text=question_text, choosen_answers=choosen_answers)
+            )
+
+        return result_display

@@ -139,5 +139,20 @@ class QuizzDetailResultSchema(BaseModel):
     questions: list[QuestionResultSchema]
 
 
+class ChoosenAnswerDisplaySchema(BaseModel):
+    text: str
+    is_correct: bool
+
+
+class QuestionResultDisplaySchema(BaseModel):
+    text: str
+    choosen_answers: list[ChoosenAnswerDisplaySchema]
+
+
+class QuizzResultDisplaySchema(BaseModel):
+    score: float
+    questions: list[QuestionResultDisplaySchema]
+    
+
 class QuizzResultSchema(BaseModel):
     score: float

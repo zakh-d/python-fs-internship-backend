@@ -10,7 +10,7 @@ from app.schemas.quizz_schema import (
     QuestionUpdateSchema,
     QuizzCompletionSchema,
     QuizzCreateSchema,
-    QuizzDetailResultSchema,
+    QuizzResultDisplaySchema,
     QuizzResultSchema,
     QuizzSchema,
     QuizzUpdateSchema,
@@ -202,5 +202,5 @@ async def get_my_quizz_results(
     quizz_id: UUID,
     quizz_service: Annotated[QuizzService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
-) -> QuizzDetailResultSchema:
+) -> QuizzResultDisplaySchema:
     return await quizz_service.get_cached_user_response(current_user.id, quizz_id)
