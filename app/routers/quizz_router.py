@@ -10,6 +10,7 @@ from app.schemas.quizz_schema import (
     QuestionUpdateSchema,
     QuizzCompletionSchema,
     QuizzCreateSchema,
+    QuizzDetailResultSchema,
     QuizzResultSchema,
     QuizzSchema,
     QuizzUpdateSchema,
@@ -194,3 +195,12 @@ async def get_quizz_average_score(
     quizz = await quizz_service.get_quizz(quizz_id)
     await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
     return await quizz_service.get_average_score_by_quizz(quizz_id)
+
+
+@router.get('/{quizz_id}/my-results/')
+async def get_my_quizz_results(
+    quizz_id: UUID,
+    quizz_service: Annotated[QuizzService, Depends()],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+) -> QuizzDetailResultSchema:
+    return await quizz_service.get_cached_user_response(current_user.id, quizz_id)

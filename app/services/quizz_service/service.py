@@ -247,3 +247,9 @@ class QuizzService:
 
     async def get_average_score_by_quizz(self, quizz_id: UUID) -> QuizzResultSchema:
         return QuizzResultSchema(score=await self._quizz_repository.get_average_score_by_quizz(quizz_id))
+
+    async def get_cached_user_response(self, user_id: UUID, quizz_id: UUID) -> QuizzDetailResultSchema:
+        result = await self._quizz_repository.get_user_quizz_cache_keys(user_id, quizz_id)
+        if len(result.questions) == 0:
+            raise QuizzNotFound('User response')
+        return result

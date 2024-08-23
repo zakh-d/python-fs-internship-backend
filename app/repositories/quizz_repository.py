@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -8,10 +8,14 @@ from app.redis import get_redis_client
 from app.repositories.repository_base import RepositoryBase
 from app.schemas.quizz_schema import (
     AnswerUpdateSchema,
+    ChoosenAnswerSchema,
+    QuestionResultSchema,
     QuestionUpdateSchema,
     QuizzDetailResultSchema,
     QuizzUpdateSchema,
 )
+
+ID_OR_MATCH_ALL = Union[UUID, Literal['*']]
 
 
 class QuizzRepository(RepositoryBase):
@@ -138,8 +142,52 @@ class QuizzRepository(RepositoryBase):
         async with redis.pipeline(transaction=True) as pipe:
             for question in data.questions:
                 for answer in question.choosen_answers:
-                    key = f'answer:{user_id}:{company_id}:{quizz_id}:{question.question_id}:{answer.answer_id}'
+                    key = self._create_key(user_id, company_id, quizz_id, question.question_id, answer.answer_id)
                     pipe.set(key, 1 if answer.is_correct else 0, ex=_48_hours)
-                    
+
             await pipe.execute()
         await redis.close()
+
+    def _parse_key(self, key: str) -> tuple[UUID, UUID, UUID, UUID, UUID]:
+        _, user_id, company_id, quizz_id, question_id, answer_id = key.split(':')
+        return UUID(user_id), UUID(company_id), UUID(quizz_id), UUID(question_id), UUID(answer_id)
+
+    def _create_key(
+        self,
+        user_id: ID_OR_MATCH_ALL,
+        company_id: ID_OR_MATCH_ALL,
+        quizz_id: ID_OR_MATCH_ALL,
+        question_id: ID_OR_MATCH_ALL,
+        answer_id: ID_OR_MATCH_ALL,
+    ) -> str:
+        return f'answer:{user_id}:{company_id}:{quizz_id}:{question_id}:{answer_id}'
+
+    async def get_user_quizz_cache_keys(self, user_id: UUID, quizz_id: UUID) -> QuizzDetailResultSchema:
+        redis = await get_redis_client()
+        key = self._create_key(
+            user_id=user_id,
+            company_id='*',
+            quizz_id=quizz_id,
+            question_id='*',
+            answer_id='*',
+        )
+        keys = await redis.keys(key)
+        print(key)
+        print('AAAAAAAA')
+        print(keys)
+        responses = await redis.mget(keys)
+        print(responses)
+        keys = [key.decode() for key in keys]
+        result = QuizzDetailResultSchema(questions=[])
+        for key, response in zip(keys, responses):
+            _, _, _, cached_question_id, cached_answer_id = self._parse_key(key)
+            try:
+                question_index = [q.question_id for q in result.questions].index(cached_question_id)
+            except ValueError:
+                result.questions.append(QuestionResultSchema(question_id=cached_question_id, choosen_answers=[]))
+                question_index = len(result.questions) - 1
+            result.questions[question_index].choosen_answers.append(
+                ChoosenAnswerSchema(answer_id=cached_answer_id, is_correct=response == b'1')
+            )
+        await redis.close()
+        return result
