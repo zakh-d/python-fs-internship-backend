@@ -1,7 +1,7 @@
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response
 
 from app.core.security import get_current_user
 from app.schemas.quizz_schema import (
@@ -10,7 +10,6 @@ from app.schemas.quizz_schema import (
     QuestionUpdateSchema,
     QuizzCompletionSchema,
     QuizzCreateSchema,
-    QuizzResultDisplaySchema,
     QuizzResultSchema,
     QuizzSchema,
     QuizzUpdateSchema,
@@ -202,5 +201,12 @@ async def get_my_quizz_results(
     quizz_id: UUID,
     quizz_service: Annotated[QuizzService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
-) -> QuizzResultDisplaySchema:
-    return await quizz_service.get_cached_user_response(current_user.id, quizz_id)
+    format: Literal['json', 'csv'] = 'json',
+) -> Response:
+    if format == 'json':    
+        cached_response = await quizz_service.get_cached_user_response_json(current_user.id, quizz_id)
+        return Response(content=cached_response.model_dump_json(), media_type='text/json')
+    
+    cached_response = await quizz_service.get_cached_user_response_csv(current_user.id, quizz_id)
+    return Response(content=cached_response, media_type='text/csv')
+

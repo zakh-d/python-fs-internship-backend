@@ -1,3 +1,5 @@
+import csv
+import io
 from math import floor
 from typing import Annotated
 from uuid import UUID
@@ -252,7 +254,7 @@ class QuizzService:
     async def get_average_score_by_quizz(self, quizz_id: UUID) -> QuizzResultSchema:
         return QuizzResultSchema(score=await self._quizz_repository.get_average_score_by_quizz(quizz_id))
 
-    async def get_cached_user_response(self, user_id: UUID, quizz_id: UUID) -> QuizzResultDisplaySchema:
+    async def get_cached_user_response_json(self, user_id: UUID, quizz_id: UUID) -> QuizzResultDisplaySchema:
         quizz = await self.get_quizz(quizz_id)
         quizz = await self.fetch_quizz_questions(quizz)
 
@@ -281,3 +283,33 @@ class QuizzService:
             )
 
         return result_display
+
+    async def get_cached_user_response_csv(self, user_id: UUID, quizz_id: UUID) -> str:
+        quizz = await self.get_quizz(quizz_id)
+        quizz = await self.fetch_quizz_questions(quizz)
+
+        result = await self._quizz_repository.get_user_quizz_cache_keys(user_id, quizz_id)
+        if len(result.questions) == 0:
+            raise QuizzNotFound('User response')
+
+        quizz_result = await self._quizz_repository.get_latest_quizz_result(user_id, quizz_id)
+        if not quizz_result:
+            raise QuizzNotFound('Quizz result')
+
+        questions_text_by_ids = {question.id: question.text for question in quizz.questions}
+        answers_text_by_ids = {answer.id: answer.text for question in quizz.questions for answer in question.answers}
+
+        output = io.StringIO()
+        writter = csv.DictWriter(output, fieldnames=['Question', 'Answer', 'Is Correct'])
+        writter.writeheader()
+        for question in result.questions:
+            for choosen_answer in question.choosen_answers:
+                writter.writerow(
+                    {
+
+                        'Question': questions_text_by_ids[question.question_id],
+                        'Answer': answers_text_by_ids[choosen_answer.answer_id],
+                        'Is Correct': choosen_answer.is_correct,
+                    }
+                )
+        return output.getvalue()
