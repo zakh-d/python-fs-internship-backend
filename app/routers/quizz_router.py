@@ -196,7 +196,7 @@ async def get_quizz_average_score(
     return await quizz_service.get_average_score_by_quizz(quizz_id)
 
 
-@router.get('/{quizz_id}/my-results/')
+@router.get('/{quizz_id}/response/my/')
 async def get_my_quizz_results(
     quizz_id: UUID,
     quizz_service: Annotated[QuizzService, Depends()],
@@ -210,3 +210,23 @@ async def get_my_quizz_results(
     cached_response = await quizz_service.get_cached_user_response_csv(current_user.id, quizz_id)
     return Response(content=cached_response, media_type='text/csv')
 
+
+@router.get('/{quizz_id}/response/{user_id}/')
+async def get_user_quizz_results(
+    quizz_id: UUID,
+    user_id: UUID,
+    quizz_service: Annotated[QuizzService, Depends()],
+    company_service: Annotated[CompanyService, Depends()],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+    format: Literal['json', 'csv'] = 'json',
+) -> Response:
+    quizz = await quizz_service.get_quizz(quizz_id)
+    if user_id != current_user.id:
+        await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
+    
+    if format == 'json':    
+        cached_response = await quizz_service.get_cached_user_response_json(user_id, quizz_id)
+        return Response(content=cached_response.model_dump_json(), media_type='text/json')
+    
+    cached_response = await quizz_service.get_cached_user_response_csv(user_id, quizz_id)
+    return Response(content=cached_response, media_type='text/csv')

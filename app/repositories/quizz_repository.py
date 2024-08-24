@@ -159,14 +159,15 @@ class QuizzRepository(RepositoryBase):
     
     async def delete_cached_quizz_for_user(self, user_id: UUID, quizz_id: UUID) -> None:
         redis = await get_redis_client()
-        key = self._create_key(
+        lookup_key = self._create_key(
             user_id=user_id,
             company_id='*',
             quizz_id=quizz_id,
             question_id='*',
             answer_id='*')
-        keys = await redis.keys(key)
-        await redis.delete(*keys)
+        keys = await redis.keys(lookup_key)
+        if len(keys) > 0:
+            await redis.delete(*keys)
         await redis.close()
 
     def _parse_key(self, key: str) -> tuple[UUID, UUID, UUID, UUID, UUID]:
@@ -185,14 +186,14 @@ class QuizzRepository(RepositoryBase):
 
     async def get_user_quizz_cache_keys(self, user_id: UUID, quizz_id: UUID) -> QuizzDetailResultSchema:
         redis = await get_redis_client()
-        key = self._create_key(
+        lookup_key = self._create_key(
             user_id=user_id,
             company_id='*',
             quizz_id=quizz_id,
             question_id='*',
             answer_id='*',
         )
-        keys = await redis.keys(key)
+        keys = await redis.keys(lookup_key)
         responses = await redis.mget(keys)
         keys = [key.decode() for key in keys]
         result = QuizzDetailResultSchema(questions=[])
