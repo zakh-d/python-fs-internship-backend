@@ -318,26 +318,20 @@ class QuizzService:
     async def get_cached_users_responses_json(
         self, users: list[UserSchema], quizz_id: UUID
     ) -> QuizzResultListDisplaySchema:
-        list_ = QuizzResultListDisplaySchema(
-            responses=[]
-        )
+        list_ = QuizzResultListDisplaySchema(responses=[])
         for user in users:
             try:
                 response = await self.get_cached_user_response_json(user.id, quizz_id)
                 list_.responses.append(
                     QuizzResultDisplayWithUserSchema(
-                        score=response.score,
-                        questions=response.questions,
-                        user_email=user.email
+                        score=response.score, questions=response.questions, user_email=user.email
                     )
                 )
             except QuizzNotFound:
                 continue
         return list_
-    
-    async def get_cached_users_responses_csv(
-        self, users: list[UserSchema], quizz_id: UUID
-    ) -> str:
+
+    async def get_cached_users_responses_csv(self, users: list[UserSchema], quizz_id: UUID) -> str:
         output = io.StringIO()
         writter = csv.DictWriter(output, fieldnames=['User', 'Question', 'Answer', 'Is Correct'])
         writter.writeheader()

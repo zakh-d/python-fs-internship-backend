@@ -203,10 +203,10 @@ async def get_my_quizz_results(
     current_user: Annotated[UserDetail, Depends(get_current_user)],
     format: Literal['json', 'csv'] = 'json',
 ) -> Response:
-    if format == 'json':    
+    if format == 'json':
         cached_response = await quizz_service.get_cached_user_response_json(current_user.id, quizz_id)
         return Response(content=cached_response.model_dump_json(), media_type='text/json')
-    
+
     cached_response = await quizz_service.get_cached_user_response_csv(current_user.id, quizz_id)
     return Response(content=cached_response, media_type='text/csv')
 
@@ -223,11 +223,11 @@ async def get_user_quizz_results(
     quizz = await quizz_service.get_quizz(quizz_id)
     if user_id != current_user.id:
         await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
-    
-    if format == 'json':    
+
+    if format == 'json':
         cached_response = await quizz_service.get_cached_user_response_json(user_id, quizz_id)
         return Response(content=cached_response.model_dump_json(), media_type='text/json')
-    
+
     cached_response = await quizz_service.get_cached_user_response_csv(user_id, quizz_id)
     return Response(content=cached_response, media_type='text/csv')
 
@@ -244,9 +244,9 @@ async def get_quizz_responses(
     company = await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
     members = [user for user in (await company_service.get_company_members(company.id)).users]
 
-    if format == 'json':    
+    if format == 'json':
         cached_response = await quizz_service.get_cached_users_responses_json(members, quizz_id)
         return Response(content=cached_response.model_dump_json(), media_type='text/json')
-    
+
     cached_response = await quizz_service.get_cached_users_responses_csv(members, quizz_id)
     return Response(content=cached_response, media_type='text/csv')
