@@ -1,6 +1,6 @@
 import contextlib
 from collections.abc import AsyncGenerator
-from typing import Annotated, TypeVar
+from typing import Annotated, TypeVar, Union
 from uuid import UUID
 
 from fastapi import Depends
@@ -34,7 +34,7 @@ class RepositoryBase:
         results = await self.db.execute(select(func.count(table.id)).where(condition))
         return results.scalar_one()
 
-    async def _get_item_by_id(self, item_id: UUID, table: T) -> T:
+    async def _get_item_by_id(self, item_id: UUID, table: T) -> Union[T, None]:
         results = await self.db.execute(select(table).where(table.id == item_id))
         return results.scalars().first()
 

@@ -1,4 +1,4 @@
-from typing import Annotated, Callable
+from typing import Annotated, Callable, Literal
 from uuid import UUID
 
 from fastapi import Depends
@@ -14,7 +14,7 @@ from app.schemas.company_schema import (
     CompanyListSchema,
     CompanySchema,
 )
-from app.schemas.user_shema import UserDetail, UserList, UserSchema
+from app.schemas.user_shema import UserDetail, UserInCompanyList, UserInCompanySchema, UserList, UserSchema
 
 from .exceptions import (
     ActionNotFound,
@@ -39,7 +39,7 @@ class CompanyService:
         return company.owner_id == current_user.id
 
     def _user_has_delete_permission(self, company: Company, current_user: UserDetail) -> bool:
-        # only admin can delete their company
+        # only owner can delete their company
         return company.owner_id == current_user.id
 
     def _user_is_company_owner(self, company: Company, current_user: UserDetail) -> bool:
@@ -63,6 +63,27 @@ class CompanyService:
         company = await self.check_company_exists(company_id)
         if company.hidden:
             raise CompanyNotFoundException(company_id)
+        return company
+
+    async def check_owner_or_admin(self, company_id: UUID, user_id: UUID) -> Company:
+        company = await self.check_company_exists(company_id)
+        is_admin = await self._company_action_repository.get_by_company_user_and_type(
+            company_id=company_id, user_id=user_id, _type=CompanyActionType.ADMIN
+        )
+        if company.owner_id != user_id and is_admin is None:
+            raise CompanyPermissionException()
+        return company
+
+    async def check_is_member(self, company_id: UUID, user_id: UUID) -> Company:
+        company = await self.check_company_exists(company_id)
+        is_member = await self._company_action_repository.get_by_company_user_and_type(
+            company_id=company_id, user_id=user_id, _type=CompanyActionType.MEMBERSHIP
+        )
+        is_admin = await self._company_action_repository.get_by_company_user_and_type(
+            company_id=company_id, user_id=user_id, _type=CompanyActionType.ADMIN
+        )
+        if is_member is None and is_admin is None:
+            raise CompanyPermissionException()
         return company
 
     async def get_all_companies(self, page: int, limit: int) -> CompanyListSchema:
@@ -131,7 +152,24 @@ class CompanyService:
 
     async def delete_company(self, company_id: UUID, current_user: UserDetail) -> None:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_delete_permission)
-        await self._company_repository.delete_company_by_id(company_id)
+        await self._company_repository.delete_company_by_id_and_commit(company_id)
+
+    async def get_user_role_in_company(
+        self, company_id: UUID, user_id: UUID
+    ) -> Literal['none', 'member', 'admin', 'owner']:
+        company = await self.check_company_exists(company_id)
+        if company.owner_id == user_id:
+            return 'owner'
+        action = await self._company_action_repository.get_by_company_and_user(company_id, user_id)
+        if action is None:
+            if company.hidden:
+                raise CompanyNotFoundException(company_id)
+            return 'none'
+        if action.type == CompanyActionType.MEMBERSHIP:
+            return 'member'
+        if action.type == CompanyActionType.ADMIN:
+            return 'admin'
+        return 'none'
 
     async def invite_user(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> CompanyActionSchema:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)
@@ -165,13 +203,23 @@ class CompanyService:
     async def get_company_members(
         self,
         company_id: UUID,
-    ) -> UserList:
-        await self.check_company_exists(company_id)
+    ) -> UserInCompanyList:
+        company = await self.check_company_exists(company_id)
+
+        total_list = UserInCompanyList(users=[], total_count=0)
+
         members = await self._get_related_users_list(company_id, CompanyActionType.MEMBERSHIP)
+        total_list.users.extend(
+            UserInCompanySchema(**user.dict(), role='member' if user.id != company.owner_id else 'owner')
+            for user in members.users
+        )
+        total_list.total_count += members.total_count
+
         admins = await self._get_related_users_list(company_id, CompanyActionType.ADMIN)
-        members.users.extend(admins.users)
-        members.total_count += admins.total_count
-        return members
+        total_list.users.extend(UserInCompanySchema(**user.dict(), role='admin') for user in admins.users)
+        total_list.total_count += admins.total_count
+
+        return total_list
 
     async def accept_request(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> CompanyActionSchema:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)

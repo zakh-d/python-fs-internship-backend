@@ -79,3 +79,27 @@ class CompanyAction(ModelWithIdAndTimeStamps):
 
     company: Mapped[Company] = relationship(back_populates='company_actions')
     user: Mapped[User] = relationship(back_populates='company_actions')
+
+
+class Quizz(ModelWithIdAndTimeStamps):
+    __tablename__ = 'quizzes'
+
+    title: Mapped[str] = mapped_column(String(50))
+    description: Mapped[str] = mapped_column(String(250), nullable=True)
+    company_id: Mapped[UUID] = mapped_column(ForeignKey('companies.id', ondelete='CASCADE'))
+    frequency: Mapped[int]
+
+
+class Question(ModelWithIdAndTimeStamps):
+    __tablename__ = 'questions'
+
+    text: Mapped[str] = mapped_column(String(250))
+    quizz_id: Mapped[UUID] = mapped_column(ForeignKey('quizzes.id', ondelete='CASCADE'))
+
+
+class Answer(ModelWithIdAndTimeStamps):
+    __tablename__ = 'answers'
+
+    text: Mapped[str] = mapped_column(String(250))
+    question_id: Mapped[UUID] = mapped_column(ForeignKey('questions.id', ondelete='CASCADE'))
+    is_correct: Mapped[bool] = mapped_column(Boolean, default=False)

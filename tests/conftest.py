@@ -10,7 +10,8 @@ from app.db.db import async_session
 from app.repositories import UserRepository
 from app.repositories.company_action_repository import CompanyActionRepository
 from app.repositories.company_repository import CompanyRepository
-from app.schemas.user_shema import UserSchema
+from app.schemas.company_schema import CompanyCreateSchema, CompanySchema
+from app.schemas.user_shema import UserSchema, UserSignUpSchema
 from app.services.authentication_service.service import AuthenticationService
 from app.services.company_service.service import CompanyService
 from app.services.users_service import UserService
@@ -92,3 +93,29 @@ def company_action_repo(get_db) -> CompanyActionRepository:
 @pytest.fixture
 def company_service(company_repo, company_action_repo) -> CompanyService:
     return CompanyService(company_repository=company_repo, company_action_repository=company_action_repo)
+
+
+@pytest.fixture
+async def company_and_users(
+    user_service: UserService,
+    company_service: CompanyService,
+    test_user: UserSchema
+) -> tuple[CompanySchema, UserSchema, UserSchema]:
+    owner = await user_service.create_user(
+        UserSignUpSchema(
+            username='owner',
+            first_name='OWNER',
+            last_name='OWNER',
+            email='owner@example.com',
+            password='testpass123',
+            password_confirmation='testpass123'
+        )
+    )
+
+    company = await company_service.create_company(CompanyCreateSchema(
+        name='TEST',
+        description='TEST',
+        hidden=False
+    ), owner)
+
+    return company, owner, test_user
