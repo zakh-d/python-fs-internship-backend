@@ -79,15 +79,15 @@ class QuizzRepository(RepositoryBase):
         result = await self.db.execute(query)
         return result.scalar_one()
 
-    async def delete_quizz(self, quizz_id: UUID) -> None:
+    async def delete_quizz_and_commit(self, quizz_id: UUID) -> None:
         await self._delete_item_by_id(quizz_id, Quizz)
         await self.db.commit()
 
-    async def delete_question(self, question_id: UUID) -> None:
+    async def delete_question_and_commit(self, question_id: UUID) -> None:
         await self._delete_item_by_id(question_id, Question)
         await self.db.commit()
 
-    async def delete_answer(self, answer_id: UUID) -> None:
+    async def delete_answer_and_commit(self, answer_id: UUID) -> None:
         await self._delete_item_by_id(answer_id, Answer)
         await self.db.commit()
 

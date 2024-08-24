@@ -31,7 +31,7 @@ class CompanyRepository(RepositoryBase):
     async def get_company_by_id(self, company_id: UUID) -> Union[Company, None]:
         return await self._get_item_by_id(company_id, Company)
 
-    async def delete_company_by_id(self, company_id: UUID) -> None:
+    async def delete_company_by_id_and_commit(self, company_id: UUID) -> None:
         await self._delete_item_by_id(company_id, Company)
         await self.db.commit()
 
