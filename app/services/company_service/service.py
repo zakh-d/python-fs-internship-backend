@@ -152,7 +152,7 @@ class CompanyService:
 
     async def delete_company(self, company_id: UUID, current_user: UserDetail) -> None:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_delete_permission)
-        await self._company_repository.delete_company_by_id(company_id)
+        await self._company_repository.delete_company_by_id_and_commit(company_id)
 
     async def get_user_role_in_company(
         self, company_id: UUID, user_id: UUID
