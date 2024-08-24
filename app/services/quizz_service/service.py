@@ -26,13 +26,15 @@ from app.schemas.quizz_schema import (
     QuizzDetailResultSchema,
     QuizzListSchema,
     QuizzResultDisplaySchema,
+    QuizzResultDisplayWithUserSchema,
+    QuizzResultListDisplaySchema,
     QuizzResultSchema,
     QuizzSchema,
     QuizzUpdateSchema,
     QuizzWithCorrectAnswersSchema,
     QuizzWithNoQuestionsSchema,
 )
-from app.schemas.user_shema import UserDetail
+from app.schemas.user_shema import UserDetail, UserSchema
 from app.services.quizz_service.exceptions import QuizzError, QuizzNotFound
 
 
@@ -306,10 +308,52 @@ class QuizzService:
             for choosen_answer in question.choosen_answers:
                 writter.writerow(
                     {
-
                         'Question': questions_text_by_ids[question.question_id],
                         'Answer': answers_text_by_ids[choosen_answer.answer_id],
                         'Is Correct': choosen_answer.is_correct,
                     }
                 )
+        return output.getvalue()
+
+    async def get_cached_users_responses_json(
+        self, users: list[UserSchema], quizz_id: UUID
+    ) -> QuizzResultListDisplaySchema:
+        list_ = QuizzResultListDisplaySchema(
+            responses=[]
+        )
+        for user in users:
+            try:
+                response = await self.get_cached_user_response_json(user.id, quizz_id)
+                list_.responses.append(
+                    QuizzResultDisplayWithUserSchema(
+                        score=response.score,
+                        questions=response.questions,
+                        user_email=user.email
+                    )
+                )
+            except QuizzNotFound:
+                continue
+        return list_
+    
+    async def get_cached_users_responses_csv(
+        self, users: list[UserSchema], quizz_id: UUID
+    ) -> str:
+        output = io.StringIO()
+        writter = csv.DictWriter(output, fieldnames=['User', 'Question', 'Answer', 'Is Correct'])
+        writter.writeheader()
+        for user in users:
+            try:
+                response = await self.get_cached_user_response_json(user.id, quizz_id)
+                for question in response.questions:
+                    for choosen_answer in question.choosen_answers:
+                        writter.writerow(
+                            {
+                                'User': user.email,
+                                'Question': question.text,
+                                'Answer': choosen_answer.text,
+                                'Is Correct': choosen_answer.is_correct,
+                            }
+                        )
+            except QuizzNotFound:
+                continue
         return output.getvalue()
