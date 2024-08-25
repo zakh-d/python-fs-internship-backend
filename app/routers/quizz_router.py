@@ -11,6 +11,7 @@ from app.schemas.quizz_schema import (
     QuizzCompletionSchema,
     QuizzCreateSchema,
     QuizzResultSchema,
+    QuizzResultWithTimestampSchema,
     QuizzSchema,
     QuizzUpdateSchema,
     QuizzWithCorrectAnswersSchema,
@@ -250,3 +251,18 @@ async def get_quizz_responses(
 
     cached_response = await quizz_service.get_cached_users_responses_csv(members, quizz_id)
     return Response(content=cached_response, media_type='text/csv')
+
+
+@router.get('/{quizz_id}/completions/{user_id}/')
+async def get_user_completions_for_quizz(
+    quizz_id: UUID,
+    user_id: UUID,
+    quizz_service: Annotated[QuizzService, Depends()],
+    company_service: Annotated[CompanyService, Depends()],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+) -> list[QuizzResultWithTimestampSchema]:
+    quizz = await quizz_service.get_quizz(quizz_id)
+    if user_id != current_user.id:
+        await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
+
+    return await quizz_service.get_user_quizz_completions(user_id, quizz_id)

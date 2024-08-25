@@ -169,6 +169,10 @@ class QuizzResultSchema(BaseModel):
     score: float
 
 
+class QuizzResultWithTimestampSchema(QuizzResultSchema):
+    completion_time: datetime.datetime
+
+
 class QuizzResultWithQuizzIdSchema(QuizzResultSchema):
     quizz_id: UUID
     quizz_title: str

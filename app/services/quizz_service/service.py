@@ -32,6 +32,7 @@ from app.schemas.quizz_schema import (
     QuizzResultListDisplaySchema,
     QuizzResultSchema,
     QuizzResultWithQuizzIdSchema,
+    QuizzResultWithTimestampSchema,
     QuizzSchema,
     QuizzUpdateSchema,
     QuizzWithCorrectAnswersSchema,
@@ -279,6 +280,17 @@ class QuizzService:
             quizz_title=completion.title,
             completion_time=completion.lastest_completion,
         ) for completion in completions]
+    
+
+    async def get_user_quizz_completions(self, user_id: UUID, quizz_id: UUID) -> list[QuizzResultWithTimestampSchema]:
+        complitions = await self._quizz_repository.get_user_quizz_completions(user_id, quizz_id)
+        return [
+            QuizzResultWithTimestampSchema(
+                score=complition.score,
+                completion_time=complition.created_at,
+            )
+            for complition in complitions
+        ]
 
     async def get_average_score_by_quizz(self, quizz_id: UUID) -> QuizzResultSchema:
         return QuizzResultSchema(score=await self._quizz_repository.get_average_score_by_quizz(quizz_id))

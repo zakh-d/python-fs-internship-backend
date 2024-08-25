@@ -172,6 +172,15 @@ class QuizzRepository(RepositoryBase):
         )
         result = await self.db.execute(query)
         return result.all()
+    
+    async def get_user_quizz_completions(self, user_id: UUID, quizz_id: UUID) -> Sequence[QuizzResult]:
+        query = (
+            select(QuizzResult)
+            .where(and_(QuizzResult.user_id == user_id, QuizzResult.quizz_id == quizz_id))
+            .order_by(QuizzResult.created_at.desc())
+        )
+        result = await self.db.execute(query)
+        return result.scalars().all()
 
     async def cache_quizz_result(
         self, user_id: UUID, company_id: UUID, quizz_id: UUID, data: QuizzDetailResultSchema
