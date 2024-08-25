@@ -148,7 +148,8 @@ class QuizzRepository(RepositoryBase):
         self, user_id: UUID, start_date: datetime.datetime, end_date: datetime.datetime
     ) -> list[dict]:
         query = (
-            select(QuizzResult.quizz_id, func.avg(QuizzResult.score).label('average_score'))
+            select(QuizzResult.quizz_id, func.avg(QuizzResult.score).label('average_score'), Quizz.title)
+            .join(Quizz)
             .where(
                 and_(
                     QuizzResult.user_id == user_id,
@@ -156,7 +157,7 @@ class QuizzRepository(RepositoryBase):
                     QuizzResult.created_at <= end_date,
                 )
             )
-            .group_by(QuizzResult.quizz_id)
+            .group_by(QuizzResult.quizz_id, Quizz.title)
         )
         result = await self.db.execute(query)
         return result.all()

@@ -170,3 +170,4 @@ class QuizzResultSchema(BaseModel):
 
 class QuizzResultWithQuizzIdSchema(QuizzResultSchema):
     quizz_id: UUID
+    quizz_title: str

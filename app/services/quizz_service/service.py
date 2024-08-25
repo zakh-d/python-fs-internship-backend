@@ -266,6 +266,7 @@ class QuizzService:
             QuizzResultWithQuizzIdSchema(
                 quizz_id=result.quizz_id,
                 score=result.average_score,
+                quizz_title=result.title,
             )
             for result in results
         ]
