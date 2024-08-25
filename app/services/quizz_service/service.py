@@ -1,4 +1,5 @@
 import csv
+import datetime
 import io
 from math import floor
 from typing import Annotated
@@ -29,6 +30,7 @@ from app.schemas.quizz_schema import (
     QuizzResultDisplayWithUserSchema,
     QuizzResultListDisplaySchema,
     QuizzResultSchema,
+    QuizzResultWithQuizzIdSchema,
     QuizzSchema,
     QuizzUpdateSchema,
     QuizzWithCorrectAnswersSchema,
@@ -252,6 +254,21 @@ class QuizzService:
 
     async def get_average_score_by_user(self, user_id: UUID) -> QuizzResultSchema:
         return QuizzResultSchema(score=await self._quizz_repository.get_average_score_by_user(user_id))
+
+    async def get_average_score_by_user_group_by_quizz_within_dates(
+        self, user_id: UUID, start_date: datetime.datetime, end_date: datetime.datetime
+    ) -> list[QuizzResultWithQuizzIdSchema]:
+        results = await self._quizz_repository.get_average_score_by_user_grouped_by_quizz_within_dates(
+            user_id, start_date, end_date
+        )
+        print(results)
+        return [
+            QuizzResultWithQuizzIdSchema(
+                quizz_id=result.quizz_id,
+                score=result.average_score,
+            )
+            for result in results
+        ]
 
     async def get_average_score_by_quizz(self, quizz_id: UUID) -> QuizzResultSchema:
         return QuizzResultSchema(score=await self._quizz_repository.get_average_score_by_quizz(quizz_id))

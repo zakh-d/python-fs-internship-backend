@@ -1,3 +1,4 @@
+import datetime
 from typing import Literal, Optional, Union
 from uuid import UUID
 
@@ -142,6 +143,23 @@ class QuizzRepository(RepositoryBase):
         query = select(func.avg(QuizzResult.score)).where(QuizzResult.quizz_id == quizz_id)
         result = await self.db.execute(query)
         return result.scalar_one()
+
+    async def get_average_score_by_user_grouped_by_quizz_within_dates(
+        self, user_id: UUID, start_date: datetime.datetime, end_date: datetime.datetime
+    ) -> list[dict]:
+        query = (
+            select(QuizzResult.quizz_id, func.avg(QuizzResult.score).label('average_score'))
+            .where(
+                and_(
+                    QuizzResult.user_id == user_id,
+                    QuizzResult.created_at >= start_date,
+                    QuizzResult.created_at <= end_date,
+                )
+            )
+            .group_by(QuizzResult.quizz_id)
+        )
+        result = await self.db.execute(query)
+        return result.all()
 
     async def cache_quizz_result(
         self, user_id: UUID, company_id: UUID, quizz_id: UUID, data: QuizzDetailResultSchema

@@ -166,3 +166,7 @@ class QuizzResultListDisplaySchema(BaseModel):
 
 class QuizzResultSchema(BaseModel):
     score: float
+
+
+class QuizzResultWithQuizzIdSchema(QuizzResultSchema):
+    quizz_id: UUID
