@@ -1,3 +1,4 @@
+import datetime
 from typing import Optional
 from uuid import UUID
 
@@ -171,3 +172,9 @@ class QuizzResultSchema(BaseModel):
 class QuizzResultWithQuizzIdSchema(QuizzResultSchema):
     quizz_id: UUID
     quizz_title: str
+
+
+class CompletionInfoSchema(BaseModel):
+    quizz_id: UUID
+    quizz_title: str
+    completion_time: datetime.datetime

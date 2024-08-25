@@ -15,6 +15,7 @@ from app.schemas.quizz_schema import (
     AnswerWithCorrectSchema,
     ChoosenAnswerDisplaySchema,
     ChoosenAnswerSchema,
+    CompletionInfoSchema,
     QuestionCompletionSchema,
     QuestionCreateSchema,
     QuestionResultDisplaySchema,
@@ -270,6 +271,14 @@ class QuizzService:
             )
             for result in results
         ]
+
+    async def get_lastest_user_completions(self, user_id: UUID) -> list[CompletionInfoSchema]:
+        completions = await self._quizz_repository.get_lastest_user_completion_across_all_quizzes(user_id)
+        return [CompletionInfoSchema(
+            quizz_id=completion.quizz_id,
+            quizz_title=completion.title,
+            completion_time=completion.lastest_completion,
+        ) for completion in completions]
 
     async def get_average_score_by_quizz(self, quizz_id: UUID) -> QuizzResultSchema:
         return QuizzResultSchema(score=await self._quizz_repository.get_average_score_by_quizz(quizz_id))

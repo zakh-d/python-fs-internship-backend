@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.security import get_current_user
 from app.schemas.company_action_schema import CompanyActionSchema
 from app.schemas.company_schema import CompanyListSchema
-from app.schemas.quizz_schema import QuizzResultSchema, QuizzResultWithQuizzIdSchema
+from app.schemas.quizz_schema import CompletionInfoSchema, QuizzResultSchema, QuizzResultWithQuizzIdSchema
 from app.schemas.user_shema import (
     UserDetail,
     UserList,
@@ -174,14 +174,21 @@ async def get_user_quizzes_average_score(
     return await quiz_service.get_average_score_by_user(user.id)
 
 
-@router.get('/{user_id}/quizzes/average/by/quizzes/', tags=['quizzes', 'users'])
+@router.get(
+    '/{user_id}/quizzes/average/by/quizzes/', tags=['quizzes', 'users'], dependencies=[Depends(only_user_itself)]
+)
 async def get_user_average_score_by_quizzes(
     user_id: UUID,
     quiz_service: Annotated[QuizzService, Depends()],
-    current_user: Annotated[UserSchema, Depends(get_current_user)],
     start_date: datetime.datetime = datetime.datetime.min,
     end_date: datetime.datetime = datetime.datetime.now,
 ) -> list[QuizzResultWithQuizzIdSchema]:
-    if current_user.id != user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='You can only see your own quizzes')
     return await quiz_service.get_average_score_by_user_group_by_quizz_within_dates(user_id, start_date, end_date)
+
+
+@router.get('/{user_id}/quizzes/latest/', tags=['quizzes', 'users'], dependencies=[Depends(only_user_itself)])
+async def get_latest_quizz_completion_by_user(
+    user_id: UUID,
+    quiz_service: Annotated[QuizzService, Depends()],
+) -> list[CompletionInfoSchema]:
+    return await quiz_service.get_lastest_user_completions(user_id)
