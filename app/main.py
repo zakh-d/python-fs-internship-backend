@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.routers.company_router import router as company_router
 from app.routers.health_check_router import router as health_check_router
+from app.routers.notification_router import router as notification_router
 from app.routers.quizz_router import router as quizz_router
 from app.routers.users_router import router as users_router
 
@@ -24,6 +25,7 @@ def create_app() -> FastAPI:
     app.include_router(users_router, prefix='/users', tags=['users'])
     app.include_router(company_router, prefix='/companies', tags=['companies'])
     app.include_router(quizz_router, prefix='/quizzes', tags=['quizzes'])
+    app.include_router(notification_router, prefix='/notifications', tags=['notifications'])
 
     return app
 

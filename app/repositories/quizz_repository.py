@@ -162,7 +162,7 @@ class QuizzRepository(RepositoryBase):
         )
         result = await self.db.execute(query)
         return result.all()
-    
+
     async def get_average_score_for_company_members_within_dates(
         self,
         company_id: UUID,
@@ -184,7 +184,7 @@ class QuizzRepository(RepositoryBase):
 
         result = await self.db.execute(query)
         return result.all()
-    
+
     async def get_lastest_user_completion_across_all_quizzes(self, user_id: UUID) -> Sequence:
         query = (
             select(QuizzResult.quizz_id, Quizz.title, func.max(QuizzResult.created_at).label('lastest_completion'))
@@ -194,7 +194,7 @@ class QuizzRepository(RepositoryBase):
         )
         result = await self.db.execute(query)
         return result.all()
-    
+
     async def get_user_quizz_completions(self, user_id: UUID, quizz_id: UUID) -> Sequence[QuizzResult]:
         query = (
             select(QuizzResult)
