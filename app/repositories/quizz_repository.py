@@ -5,7 +5,7 @@ from uuid import UUID
 
 from sqlalchemy import and_, func, select
 
-from app.db.models import Answer, Question, Quizz, QuizzResult
+from app.db.models import Answer, Question, Quizz, QuizzResult, User
 from app.redis import get_redis_client
 from app.repositories.repository_base import RepositoryBase
 from app.schemas.quizz_schema import (
@@ -160,6 +160,28 @@ class QuizzRepository(RepositoryBase):
             )
             .group_by(QuizzResult.quizz_id, Quizz.title)
         )
+        result = await self.db.execute(query)
+        return result.all()
+    
+    async def get_average_score_for_company_members_within_dates(
+        self,
+        company_id: UUID,
+        start_date: datetime.datetime,
+        end_date: datetime.datetime,
+    ) -> Sequence:
+        query = (
+            select(func.avg(QuizzResult.score).label('average_score'), User.email)
+            .join(User)
+            .where(
+                and_(
+                    QuizzResult.company_id == company_id,
+                    QuizzResult.created_at >= start_date,
+                    QuizzResult.created_at <= end_date,
+                )
+            )
+            .group_by(User.email)
+        )
+
         result = await self.db.execute(query)
         return result.all()
     

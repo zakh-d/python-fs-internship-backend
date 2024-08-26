@@ -169,6 +169,9 @@ class QuizzResultSchema(BaseModel):
     score: float
 
 
+class QuizzResultWithUserSchema(QuizzResultSchema):
+    user_email: str
+
 class QuizzResultWithTimestampSchema(QuizzResultSchema):
     completion_time: datetime.datetime
 

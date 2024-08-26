@@ -1,3 +1,4 @@
+import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -13,7 +14,7 @@ from app.schemas.company_schema import (
     CompanySchema,
     CompanyUpdateSchema,
 )
-from app.schemas.quizz_schema import QuizzListSchema, QuizzResultSchema
+from app.schemas.quizz_schema import QuizzListSchema, QuizzResultSchema, QuizzResultWithUserSchema
 from app.schemas.user_shema import UserDetail, UserEmailSchema, UserIdSchema, UserInCompanyList, UserList
 from app.services.company_service.service import CompanyService
 from app.services.quizz_service.service import QuizzService
@@ -217,3 +218,16 @@ async def get_company_quizzes_average(
 ) -> QuizzResultSchema:
     await company_service.check_is_member(company_id, current_user.id)
     return await quizz_service.get_average_score_by_company(company_id)
+
+
+@router.get('/{company_id}/quizzes/average/members/', tags=['quizzes', 'companies'])
+async def get_company_members_average_score(
+    company_id: UUID,
+    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends()],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+    start_date: datetime.datetime = datetime.datetime.min,
+    end_date: datetime.datetime = datetime.datetime.max,
+) -> list[QuizzResultWithUserSchema]:
+    await company_service.check_owner_or_admin(company_id, current_user.id)
+    return await quizz_service.get_average_score_for_company_members_within_dates(company_id, start_date, end_date)

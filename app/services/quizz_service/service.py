@@ -33,6 +33,7 @@ from app.schemas.quizz_schema import (
     QuizzResultSchema,
     QuizzResultWithQuizzIdSchema,
     QuizzResultWithTimestampSchema,
+    QuizzResultWithUserSchema,
     QuizzSchema,
     QuizzUpdateSchema,
     QuizzWithCorrectAnswersSchema,
@@ -275,12 +276,14 @@ class QuizzService:
 
     async def get_lastest_user_completions(self, user_id: UUID) -> list[CompletionInfoSchema]:
         completions = await self._quizz_repository.get_lastest_user_completion_across_all_quizzes(user_id)
-        return [CompletionInfoSchema(
-            quizz_id=completion.quizz_id,
-            quizz_title=completion.title,
-            completion_time=completion.lastest_completion,
-        ) for completion in completions]
-    
+        return [
+            CompletionInfoSchema(
+                quizz_id=completion.quizz_id,
+                quizz_title=completion.title,
+                completion_time=completion.lastest_completion,
+            )
+            for completion in completions
+        ]
 
     async def get_user_quizz_completions(self, user_id: UUID, quizz_id: UUID) -> list[QuizzResultWithTimestampSchema]:
         complitions = await self._quizz_repository.get_user_quizz_completions(user_id, quizz_id)
@@ -290,6 +293,20 @@ class QuizzService:
                 completion_time=complition.created_at,
             )
             for complition in complitions
+        ]
+
+    async def get_average_score_for_company_members_within_dates(
+        self, company_id: UUID, start_date: datetime.datetime, end_date: datetime.datetime
+    ) -> list[QuizzResultWithUserSchema]:
+        data = await self._quizz_repository.get_average_score_for_company_members_within_dates(
+            company_id, start_date, end_date
+        )
+        return [
+            QuizzResultWithUserSchema(
+                score=result.average_score,
+                user_email=result.email,
+            )
+            for result in data
         ]
 
     async def get_average_score_by_quizz(self, quizz_id: UUID) -> QuizzResultSchema:
