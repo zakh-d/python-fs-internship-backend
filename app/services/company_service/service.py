@@ -71,7 +71,7 @@ class CompanyService:
             company_id=company_id, user_id=user_id, _type=CompanyActionType.ADMIN
         )
         if company.owner_id != user_id and is_admin is None:
-            raise CompanyPermissionException()
+            raise CompanyNotFoundException(company_id)
         return company
 
     async def check_is_member(self, company_id: UUID, user_id: UUID) -> Company:
@@ -83,7 +83,7 @@ class CompanyService:
             company_id=company_id, user_id=user_id, _type=CompanyActionType.ADMIN
         )
         if is_member is None and is_admin is None:
-            raise CompanyPermissionException()
+            raise CompanyNotFoundException(company_id)
         return company
 
     async def get_all_companies(self, page: int, limit: int) -> CompanyListSchema:

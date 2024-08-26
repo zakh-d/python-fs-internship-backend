@@ -198,7 +198,7 @@ async def test_member_cannot_create_quizz(
         'Authorization': f'Bearer {token}'
     })
 
-    assert response.status_code == 403
+    assert response.status_code == 404
 
 
 @pytest.mark.asyncio
@@ -296,7 +296,7 @@ async def test_member_cannot_access_correct_answers(
     response = client.get(f'/quizzes/{test_quizz.id}/correct', headers={
         'Authorization': f'Bearer {auth_service.generate_jwt_token(user)}'
     })
-    assert response.status_code == 403
+    assert response.status_code == 404
 
 
 
