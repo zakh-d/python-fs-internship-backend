@@ -1,3 +1,4 @@
+import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
@@ -266,3 +267,31 @@ async def get_user_completions_for_quizz(
         await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
 
     return await quizz_service.get_user_quizz_completions(user_id, quizz_id)
+
+
+@router.get('/{quizz_id}/completions/{user_id}/average/')
+async def get_average_user_score_for_quizz_over_time(
+    quizz_id: UUID,
+    user_id: UUID,
+    quizz_service: Annotated[QuizzService, Depends()],
+    company_service: Annotated[CompanyService, Depends()],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+    interval: Literal['days', 'weeks', 'months'] = 'weeks',
+) -> list[QuizzResultWithTimestampSchema]:
+    quizz = await quizz_service.get_quizz(quizz_id)
+    if user_id != current_user.id:
+        await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
+
+    if interval == 'days':
+        return await quizz_service.get_average_scores_for_quizz_completed_by_user_over_intervals(
+            user_id=user_id, quizz_id=quizz_id, interval=datetime.timedelta(days=1)
+        )
+    if interval == 'weeks':
+        return await quizz_service.get_average_scores_for_quizz_completed_by_user_over_intervals(
+            user_id=user_id, quizz_id=quizz_id, interval=datetime.timedelta(weeks=1)
+        )
+    return await quizz_service.get_average_scores_for_quizz_completed_by_user_over_intervals(
+        user_id=user_id,
+        quizz_id=quizz_id,
+        interval=datetime.timedelta(weeks=4),  # 4 weeks in a month
+    )

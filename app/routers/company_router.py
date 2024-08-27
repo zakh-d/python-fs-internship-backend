@@ -242,5 +242,6 @@ async def get_company_members_average_score(
             company_id, datetime.timedelta(weeks=1)
         )
     return await quizz_service.get_average_scores_for_company_members_over_intervals(
-        company_id, datetime.timedelta(weeks=4)  # 4 weeks in a month
+        company_id,
+        datetime.timedelta(weeks=4),  # 4 weeks in a month
     )

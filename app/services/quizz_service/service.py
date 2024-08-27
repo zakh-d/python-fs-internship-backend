@@ -322,6 +322,21 @@ class QuizzService:
             end_date -= interval
         return total_results
 
+    async def get_average_scores_for_quizz_completed_by_user_over_intervals(
+        self, user_id: UUID, quizz_id: UUID, interval: datetime.timedelta
+    ) -> list[QuizzResultWithTimestampSchema]:
+        end_date = datetime.datetime.now()  # noqa: DTZ005
+        total_results = []
+        while True:
+            avg = await self._quizz_repository.get_average_score_for_quizz_by_user(
+                quizz_id=quizz_id, user_id=user_id, start_date=datetime.datetime.min, end_date=end_date
+            )
+            if avg is None:
+                break
+            total_results.append(QuizzResultWithTimestampSchema(score=avg, completion_time=end_date))
+            end_date -= interval
+        return total_results
+
     async def get_average_score_by_quizz(self, quizz_id: UUID) -> QuizzResultSchema:
         return QuizzResultSchema(score=await self._quizz_repository.get_average_score_by_quizz(quizz_id))
 
