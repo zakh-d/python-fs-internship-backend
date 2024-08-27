@@ -31,6 +31,7 @@ from app.schemas.quizz_schema import (
     QuizzResultDisplayWithUserSchema,
     QuizzResultListDisplaySchema,
     QuizzResultSchema,
+    QuizzResultsListForDateSchema,
     QuizzResultWithQuizzIdSchema,
     QuizzResultWithTimestampSchema,
     QuizzResultWithUserSchema,
@@ -295,19 +296,31 @@ class QuizzService:
             for complition in complitions
         ]
 
-    async def get_average_score_for_company_members_within_dates(
-        self, company_id: UUID, start_date: datetime.datetime, end_date: datetime.datetime
-    ) -> list[QuizzResultWithUserSchema]:
-        data = await self._quizz_repository.get_average_score_for_company_members_within_dates(
-            company_id, start_date, end_date
-        )
-        return [
-            QuizzResultWithUserSchema(
-                score=result.average_score,
-                user_email=result.email,
+    async def get_average_scores_for_company_members_over_intervals(
+        self, company_id: UUID, interval: datetime.timedelta
+    ) -> list[QuizzResultsListForDateSchema]:
+        end_date = datetime.datetime.now()  # noqa: DTZ005
+        total_results = []
+        while True:
+            data = await self._quizz_repository.get_average_score_for_company_members_within_dates(
+                company_id, datetime.datetime.min, end_date
             )
-            for result in data
-        ]
+            if len(data) == 0:
+                break
+            total_results.append(
+                QuizzResultsListForDateSchema(
+                    results=[
+                        QuizzResultWithUserSchema(
+                            score=result.average_score,
+                            user_email=result.email,
+                        )
+                        for result in data
+                    ],
+                    date=end_date,
+                )
+            )
+            end_date -= interval
+        return total_results
 
     async def get_average_score_by_quizz(self, quizz_id: UUID) -> QuizzResultSchema:
         return QuizzResultSchema(score=await self._quizz_repository.get_average_score_by_quizz(quizz_id))

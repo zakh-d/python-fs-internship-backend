@@ -172,6 +172,12 @@ class QuizzResultSchema(BaseModel):
 class QuizzResultWithUserSchema(QuizzResultSchema):
     user_email: str
 
+
+class QuizzResultsListForDateSchema(BaseModel):
+    results: list[QuizzResultWithUserSchema]
+    date: datetime.datetime
+
+
 class QuizzResultWithTimestampSchema(QuizzResultSchema):
     completion_time: datetime.datetime
 

@@ -14,7 +14,11 @@ from app.schemas.company_schema import (
     CompanySchema,
     CompanyUpdateSchema,
 )
-from app.schemas.quizz_schema import QuizzListSchema, QuizzResultSchema, QuizzResultWithUserSchema
+from app.schemas.quizz_schema import (
+    QuizzListSchema,
+    QuizzResultSchema,
+    QuizzResultsListForDateSchema,
+)
 from app.schemas.user_shema import UserDetail, UserEmailSchema, UserIdSchema, UserInCompanyList, UserList
 from app.services.company_service.service import CompanyService
 from app.services.quizz_service.service import QuizzService
@@ -226,8 +230,17 @@ async def get_company_members_average_score(
     company_service: Annotated[CompanyService, Depends()],
     quizz_service: Annotated[QuizzService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
-    start_date: datetime.datetime = datetime.datetime.min,
-    end_date: datetime.datetime = datetime.datetime.max,
-) -> list[QuizzResultWithUserSchema]:
+    interval: Literal['days', 'weeks', 'months'] = 'weeks',
+) -> list[QuizzResultsListForDateSchema]:
     await company_service.check_owner_or_admin(company_id, current_user.id)
-    return await quizz_service.get_average_score_for_company_members_within_dates(company_id, start_date, end_date)
+    if interval == 'days':
+        return await quizz_service.get_average_scores_for_company_members_over_intervals(
+            company_id, datetime.timedelta(days=1)
+        )
+    elif interval == 'weeks':
+        return await quizz_service.get_average_scores_for_company_members_over_intervals(
+            company_id, datetime.timedelta(weeks=1)
+        )
+    return await quizz_service.get_average_scores_for_company_members_over_intervals(
+        company_id, datetime.timedelta(weeks=4)  # 4 weeks in a month
+    )
