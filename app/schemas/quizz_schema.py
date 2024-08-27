@@ -182,9 +182,14 @@ class QuizzResultWithTimestampSchema(QuizzResultSchema):
     completion_time: datetime.datetime
 
 
-class QuizzResultWithQuizzIdSchema(QuizzResultSchema):
+class QuizzResultWithQuizzDataSchema(QuizzResultSchema):
     quizz_id: UUID
     quizz_title: str
+
+
+class QuizzResultAnalyticsListSchema(BaseModel):
+    results: list[QuizzResultWithQuizzDataSchema]
+    date: datetime.datetime
 
 
 class CompletionInfoSchema(BaseModel):

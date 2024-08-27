@@ -1,5 +1,5 @@
 import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -7,7 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.core.security import get_current_user
 from app.schemas.company_action_schema import CompanyActionSchema
 from app.schemas.company_schema import CompanyListSchema
-from app.schemas.quizz_schema import CompletionInfoSchema, QuizzResultSchema, QuizzResultWithQuizzIdSchema
+from app.schemas.quizz_schema import (
+    CompletionInfoSchema,
+    QuizzResultAnalyticsListSchema,
+    QuizzResultSchema,
+)
 from app.schemas.user_shema import (
     UserDetail,
     UserList,
@@ -180,10 +184,17 @@ async def get_user_quizzes_average_score(
 async def get_user_average_score_by_quizzes(
     user_id: UUID,
     quiz_service: Annotated[QuizzService, Depends()],
-    start_date: datetime.datetime = datetime.datetime.min,
-    end_date: datetime.datetime = datetime.datetime.now,
-) -> list[QuizzResultWithQuizzIdSchema]:
-    return await quiz_service.get_average_score_by_user_group_by_quizz_within_dates(user_id, start_date, end_date)
+    interval: Literal['days', 'weeks', 'months'] = 'weeks',
+) -> list[QuizzResultAnalyticsListSchema]:
+    if interval == 'days':
+        return await quiz_service.get_average_score_for_user_by_quizzes_over_intervals(
+            user_id, datetime.timedelta(days=1)
+        )
+    if interval == 'weeks':
+        return await quiz_service.get_average_score_for_user_by_quizzes_over_intervals(
+            user_id, datetime.timedelta(weeks=1)
+        )
+    return await quiz_service.get_average_score_for_user_by_quizzes_over_intervals(user_id, datetime.timedelta(weeks=4))
 
 
 @router.get('/{user_id}/quizzes/latest/', tags=['quizzes', 'users'], dependencies=[Depends(only_user_itself)])
