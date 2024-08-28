@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.core.security import get_current_user
 from app.schemas.company_action_schema import CompanyActionSchema
 from app.schemas.company_schema import CompanyListSchema
+from app.schemas.quizz_schema import QuizzResultSchema
 from app.schemas.user_shema import (
     UserDetail,
     UserList,
@@ -18,6 +19,7 @@ from app.services import UserService
 from app.services.authentication_service.service import AuthenticationService
 from app.services.company_service.exceptions import CompanyActionException
 from app.services.company_service.service import CompanyService
+from app.services.quizz_service.service import QuizzService
 from app.utils.permissions import only_user_itself
 
 router = APIRouter()
@@ -39,7 +41,7 @@ async def user_sign_up(
     return await user_service.create_user(user)
 
 
-@router.get('/me', response_model=UserDetail)
+@router.get('/me/', response_model=UserDetail)
 async def read_me(
     user_service: Annotated[UserService, Depends(UserService)],
     current_user: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
@@ -47,7 +49,7 @@ async def read_me(
     return await user_service.get_user_by_id(current_user.id)
 
 
-@router.get('/{user_id}', response_model=UserDetail)
+@router.get('/{user_id}/', response_model=UserDetail)
 async def read_user(
     user_id: UUID,
     user_service: Annotated[UserService, Depends(UserService)],
@@ -56,19 +58,19 @@ async def read_user(
     return await user_service.get_user_by_id(user_id)
 
 
-@router.put('/{user_id}', response_model=UserDetail, dependencies=[Depends(only_user_itself)])
+@router.put('/{user_id}/', response_model=UserDetail, dependencies=[Depends(only_user_itself)])
 async def update_user(
     user_id: UUID, user: UserUpdateSchema, user_service: Annotated[UserService, Depends(UserService)]
 ) -> UserDetail:
     return await user_service.update_user(user_id, user)
 
 
-@router.delete('/{user_id}', dependencies=[Depends(only_user_itself)])
+@router.delete('/{user_id}/', dependencies=[Depends(only_user_itself)])
 async def delete_user(user_id: UUID, user_service: Annotated[UserService, Depends(UserService)]) -> None:
     await user_service.delete_user(user_id)
 
 
-@router.post('/sign_in')
+@router.post('/sign_in/')
 async def sign_in(
     user_sign_in: UserSignInSchema, auth_service: Annotated[AuthenticationService, Depends(AuthenticationService)]
 ) -> dict[str, str]:
@@ -87,7 +89,7 @@ async def get_invites_for_user(
     return await user_service.get_user_invites(user_id)
 
 
-@router.post('/{user_id}/invites/{company_id}', dependencies=[Depends(only_user_itself)])
+@router.post('/{user_id}/invites/{company_id}/', dependencies=[Depends(only_user_itself)])
 async def accept_invite_to_company(
     user_id: UUID,
     company_id: UUID,
@@ -98,7 +100,7 @@ async def accept_invite_to_company(
     await user_service.accept_invitation(user_id, company_id)
 
 
-@router.delete('/{user_id}/invites/{company_id}', dependencies=[Depends(only_user_itself)])
+@router.delete('/{user_id}/invites/{company_id}/', dependencies=[Depends(only_user_itself)])
 async def reject_invite_to_company(
     user_id: UUID,
     company_id: UUID,
@@ -117,7 +119,7 @@ async def get_user_requests(
     return await user_service.get_user_requests(user_id)
 
 
-@router.post('/{user_id}/requests/{company_id}', dependencies=[Depends(only_user_itself)])
+@router.post('/{user_id}/requests/{company_id}/', dependencies=[Depends(only_user_itself)])
 async def request_to_join_company(
     user_id: UUID,
     company_id: UUID,
@@ -129,7 +131,7 @@ async def request_to_join_company(
     return request
 
 
-@router.delete('/{user_id}/requests/{company_id}', dependencies=[Depends(only_user_itself)])
+@router.delete('/{user_id}/requests/{company_id}/', dependencies=[Depends(only_user_itself)])
 async def cancel_request_to_join_company(
     user_id: UUID,
     company_id: UUID,
@@ -148,7 +150,7 @@ async def get_user_companies(
     return await user_service.get_user_companies(user_id)
 
 
-@router.delete('/{user_id}/companies/{company_id}', dependencies=[Depends(only_user_itself)])
+@router.delete('/{user_id}/companies/{company_id}/', dependencies=[Depends(only_user_itself)])
 async def leave_company(
     user_id: UUID,
     company_id: UUID,
@@ -159,3 +161,13 @@ async def leave_company(
     if company.owner_id == user_id:
         raise CompanyActionException('Owner cannot leave company')
     return await user_service.leave_company(user_id, company_id)
+
+
+@router.get('/{user_id}/quizzes/average/', tags=['quizzes', 'users'])
+async def get_user_quizzes_average_score(
+    user_id: UUID,
+    quiz_service: Annotated[QuizzService, Depends()],
+    user_service: Annotated[UserService, Depends()],
+) -> QuizzResultSchema:
+    user = await user_service.get_user_by_id(user_id)
+    return await quiz_service.get_average_score_by_user(user.id)

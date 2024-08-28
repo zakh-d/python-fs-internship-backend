@@ -8,7 +8,9 @@ from app.schemas.quizz_schema import (
     AnswerCreateSchema,
     QuestionCreateSchema,
     QuestionUpdateSchema,
+    QuizzCompletionSchema,
     QuizzCreateSchema,
+    QuizzResultSchema,
     QuizzSchema,
     QuizzUpdateSchema,
     QuizzWithCorrectAnswersSchema,
@@ -168,3 +170,27 @@ async def update_answer(
     await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
     await quizz_service.update_answer(answer_id, quizz_id, answer_data)
     return await quizz_service.fetch_quizz_questions_with_correct_answers(quizz)
+
+
+@router.post('/complete/')
+async def complete_quizz(
+    quizz_completion_data: QuizzCompletionSchema,
+    quizz_service: Annotated[QuizzService, Depends()],
+    company_service: Annotated[CompanyService, Depends()],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+) -> QuizzResultSchema:
+    quizz = await quizz_service.get_quizz(quizz_completion_data.quizz_id)
+    await company_service.check_is_member(quizz.company_id, current_user.id)
+    return await quizz_service.evaluate_quizz(quizz, quizz_completion_data, current_user)
+
+
+@router.get('/{quizz_id}/average/')
+async def get_quizz_average_score(
+    quizz_id: UUID,
+    quizz_service: Annotated[QuizzService, Depends()],
+    company_service: Annotated[CompanyService, Depends()],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+) -> QuizzResultSchema:
+    quizz = await quizz_service.get_quizz(quizz_id)
+    await company_service.check_owner_or_admin(quizz.company_id, current_user.id)
+    return await quizz_service.get_average_score_by_quizz(quizz_id)

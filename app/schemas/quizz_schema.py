@@ -102,3 +102,24 @@ class QuizzUpdateSchema(BaseModel):
     title: str = Field(max_length=50)
     description: Optional[str] = Field(max_length=250, default=None)
     frequency: int
+
+
+class QuestionCompletionSchema(BaseModel):
+    question_id: UUID
+    answer_ids: set[UUID]
+
+
+class QuizzCompletionSchema(BaseModel):
+    @model_validator(mode='after')
+    def check_questions_dont_have_duplicates(self) -> Self:
+        question_ids = [question.question_id for question in self.questions]
+        if len(question_ids) != len(set(question_ids)):
+            raise ValueError('questions must not have duplicates')
+        return self
+
+    quizz_id: UUID
+    questions: list[QuestionCompletionSchema]
+
+
+class QuizzResultSchema(BaseModel):
+    score: float

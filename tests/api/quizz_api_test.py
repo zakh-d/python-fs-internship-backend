@@ -11,46 +11,6 @@ from app.services.authentication_service.service import AuthenticationService
 from app.services.quizz_service.service import QuizzService
 
 
-@pytest.fixture
-def quizz_repo(get_db):
-    return QuizzRepository(get_db)
-
-
-@pytest.fixture
-def quizz_service(quizz_repo):
-    return QuizzService(quizz_repo)
-
-@pytest.fixture
-async def test_quizz(quizz_service, company_and_users):
-    company, _, _ = company_and_users
-    quizz_data = QuizzCreateSchema(
-        title='Test quizz',
-        description='Test description',
-        frequency=1,
-        company_id=company.id,
-        questions=[
-            QuestionCreateSchema(
-                text='Test question',
-                answers=[
-                    AnswerCreateSchema(
-                        text='option 1',
-                        is_correct=False
-                    ),
-                    AnswerCreateSchema(
-                        text='option 2',
-                        is_correct=True
-                    ),
-                    AnswerCreateSchema(
-                        text='option 3',
-                        is_correct=False
-                    )
-                ]
-            )
-        ]
-    )
-    return await quizz_service.create_quizz(quizz_data, company.id)
-
-
 def test_quizz_creation_require_at_least_one_question(
     client: TestClient,
     company_and_users: tuple[CompanySchema, UserSchema, UserSchema],

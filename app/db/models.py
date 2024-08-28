@@ -25,8 +25,8 @@ class ModelWithIdAndTimeStamps(AsyncAttrs, Base):
     }
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    created_at: Mapped[datetime] = mapped_column(server_default='now()')
-    updated_at: Mapped[datetime] = mapped_column(server_default='now()', onupdate=datetime.now)
+    created_at: Mapped[datetime] = mapped_column(default=datetime.now)
+    updated_at: Mapped[datetime] = mapped_column(default=datetime.now, onupdate=datetime.now)
 
 
 class User(ModelWithIdAndTimeStamps):
@@ -103,3 +103,12 @@ class Answer(ModelWithIdAndTimeStamps):
     text: Mapped[str] = mapped_column(String(250))
     question_id: Mapped[UUID] = mapped_column(ForeignKey('questions.id', ondelete='CASCADE'))
     is_correct: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
+class QuizzResult(ModelWithIdAndTimeStamps):
+    __tablename__ = 'quizz_results'
+
+    user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'))
+    quizz_id: Mapped[UUID] = mapped_column(ForeignKey('quizzes.id', ondelete='CASCADE'))
+    company_id: Mapped[UUID] = mapped_column(ForeignKey('companies.id', ondelete='CASCADE'))
+    score: Mapped[int]
