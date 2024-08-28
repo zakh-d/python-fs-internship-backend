@@ -226,7 +226,7 @@ class CompanyService:
                 created_at=user.created_at,
                 updated_at=user.updated_at,
                 role=user_role,
-                lastest_quizz_comleted_at=user.lastest_completion
+                lastest_quizz_comleted_at=user.lastest_completion,
             )
             schema_list_of_users.append(user_in_company)
 

@@ -294,11 +294,7 @@ class QuizzRepository(RepositoryBase):
             .subquery()
         )
 
-        subquery_quizz_result = (
-            select(QuizzResult)
-            .where(QuizzResult.company_id == company_id)
-            .subquery()
-        )
+        subquery_quizz_result = select(QuizzResult).where(QuizzResult.company_id == company_id).subquery()
 
         query = (
             select(
@@ -313,12 +309,7 @@ class QuizzRepository(RepositoryBase):
             .join(subquery_company_action, User.id == subquery_company_action.c.user_id)
             .outerjoin(subquery_quizz_result, subquery_quizz_result.c.user_id == User.id)
             .group_by(
-                User.id, 
-                User.email, 
-                User.created_at, 
-                User.updated_at, 
-                User.username, 
-                subquery_company_action.c.type
+                User.id, User.email, User.created_at, User.updated_at, User.username, subquery_company_action.c.type
             )
         )
 
