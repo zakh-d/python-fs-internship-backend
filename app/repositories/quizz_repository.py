@@ -3,9 +3,9 @@ from collections.abc import Sequence
 from typing import Literal, Optional, Union
 from uuid import UUID
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, or_, select
 
-from app.db.models import Answer, Question, Quizz, QuizzResult, User
+from app.db.models import Answer, CompanyAction, Question, Quizz, QuizzResult, User
 from app.redis import get_redis_client
 from app.repositories.repository_base import RepositoryBase
 from app.schemas.quizz_schema import (
@@ -281,3 +281,46 @@ class QuizzRepository(RepositoryBase):
             )
         await redis.close()
         return result
+
+    async def get_company_members_with_lastest_complition_date(self, company_id: UUID) -> Sequence:
+        subquery_company_action = (
+            select(CompanyAction)
+            .where(
+                and_(
+                    CompanyAction.company_id == company_id,
+                    or_(CompanyAction.type == 'MEMBERSHIP', CompanyAction.type == 'ADMIN'),
+                )
+            )
+            .subquery()
+        )
+
+        subquery_quizz_result = (
+            select(QuizzResult)
+            .where(QuizzResult.company_id == company_id)
+            .subquery()
+        )
+
+        query = (
+            select(
+                User.id,
+                User.email,
+                User.username,
+                User.created_at,
+                User.updated_at,
+                func.max(subquery_quizz_result.c.created_at).label('lastest_completion'),
+                subquery_company_action.c.type.label('role'),
+            )
+            .join(subquery_company_action, User.id == subquery_company_action.c.user_id)
+            .outerjoin(subquery_quizz_result, subquery_quizz_result.c.user_id == User.id)
+            .group_by(
+                User.id, 
+                User.email, 
+                User.created_at, 
+                User.updated_at, 
+                User.username, 
+                subquery_company_action.c.type
+            )
+        )
+
+        result = await self.db.execute(query)
+        return result.all()

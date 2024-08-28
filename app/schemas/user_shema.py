@@ -71,6 +71,7 @@ class UserEmailSchema(BaseModel):
 
 class UserInCompanySchema(UserSchema):
     role: Literal['admin', 'owner', 'member']
+    lastest_quizz_comleted_at: Optional[datetime] = None
 
 
 class UserInCompanyList(UserList):
