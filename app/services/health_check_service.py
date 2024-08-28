@@ -7,7 +7,7 @@ from app.utils.logging import logger
 
 
 async def check_redis_health() -> HealthCheckInfo:
-    redis_client = get_redis_client()
+    redis_client = await get_redis_client()
 
     try:
         await redis_client.ping()

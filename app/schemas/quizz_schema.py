@@ -52,13 +52,17 @@ class AnswerWithCorrectSchema(AnswerSchema):
     is_correct: bool
 
 
-class QuestionSchema(BaseModel):
+class QuestionBase(BaseModel):
     id: UUID
     text: str
+
+
+class QuestionSchema(QuestionBase):
     answers: list[AnswerSchema]
+    multiple: bool
 
 
-class QuestionWithCorrectAnswerSchema(QuestionSchema):
+class QuestionWithCorrectAnswerSchema(QuestionBase):
     answers: list[AnswerWithCorrectSchema]
 
 
@@ -119,6 +123,20 @@ class QuizzCompletionSchema(BaseModel):
 
     quizz_id: UUID
     questions: list[QuestionCompletionSchema]
+
+
+class ChoosenAnswerSchema(BaseModel):
+    is_correct: bool
+    answer_id: UUID
+
+
+class QuestionResultSchema(BaseModel):
+    question_id: UUID
+    choosen_answers: list[ChoosenAnswerSchema]
+
+
+class QuizzDetailResultSchema(BaseModel):
+    questions: list[QuestionResultSchema]
 
 
 class QuizzResultSchema(BaseModel):

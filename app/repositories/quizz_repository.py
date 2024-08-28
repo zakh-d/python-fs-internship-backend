@@ -4,8 +4,14 @@ from uuid import UUID
 from sqlalchemy import func, select
 
 from app.db.models import Answer, Question, Quizz, QuizzResult
+from app.redis import get_redis_client
 from app.repositories.repository_base import RepositoryBase
-from app.schemas.quizz_schema import AnswerUpdateSchema, QuestionUpdateSchema, QuizzUpdateSchema
+from app.schemas.quizz_schema import (
+    AnswerUpdateSchema,
+    QuestionUpdateSchema,
+    QuizzDetailResultSchema,
+    QuizzUpdateSchema,
+)
 
 
 class QuizzRepository(RepositoryBase):
@@ -50,7 +56,7 @@ class QuizzRepository(RepositoryBase):
         return result.scalar_one()
 
     async def get_quizz_questions(self, quizz_id: UUID) -> list[Question]:
-        query = select(Question).where(Question.quizz_id == quizz_id).order_by(Question.id)
+        query = select(Question).where(Question.quizz_id == quizz_id).order_by(Question.created_at)
         result = await self.db.execute(query)
         return result.scalars().all()
 
@@ -60,7 +66,7 @@ class QuizzRepository(RepositoryBase):
         return result.scalar_one()
 
     async def get_question_answers(self, question_id: UUID) -> list[Answer]:
-        query = select(Answer).where(Answer.question_id == question_id).order_by(Answer.id)
+        query = select(Answer).where(Answer.question_id == question_id).order_by(Answer.created_at)
         result = await self.db.execute(query)
         return result.scalars().all()
 
@@ -123,3 +129,17 @@ class QuizzRepository(RepositoryBase):
         query = select(func.avg(QuizzResult.score)).where(QuizzResult.quizz_id == quizz_id)
         result = await self.db.execute(query)
         return result.scalar_one()
+
+    async def cache_quizz_result(
+        self, user_id: UUID, company_id: UUID, quizz_id: UUID, data: QuizzDetailResultSchema
+    ) -> None:
+        redis = await get_redis_client()
+        _48_hours = 48 * 60 * 60
+        async with redis.pipeline(transaction=True) as pipe:
+            for question in data.questions:
+                for answer in question.choosen_answers:
+                    key = f'answer:{user_id}:{company_id}:{quizz_id}:{question.question_id}:{answer.answer_id}'
+                    pipe.set(key, 1 if answer.is_correct else 0, ex=_48_hours)
+                    
+            await pipe.execute()
+        await redis.close()

@@ -10,13 +10,16 @@ from app.schemas.quizz_schema import (
     AnswerSchema,
     AnswerUpdateSchema,
     AnswerWithCorrectSchema,
+    ChoosenAnswerSchema,
     QuestionCompletionSchema,
     QuestionCreateSchema,
+    QuestionResultSchema,
     QuestionSchema,
     QuestionUpdateSchema,
     QuestionWithCorrectAnswerSchema,
     QuizzCompletionSchema,
     QuizzCreateSchema,
+    QuizzDetailResultSchema,
     QuizzListSchema,
     QuizzResultSchema,
     QuizzSchema,
@@ -54,6 +57,7 @@ class QuizzService:
                     **question_data.model_dump(exclude={'answers'}),
                     answers=[],
                     id=question.id,
+                    multiple=len(list(filter(lambda answer: answer.is_correct, question_data.answers))) > 1,
                 )
 
                 for answer_data in question_data.answers:
@@ -94,8 +98,10 @@ class QuizzService:
         quizz = QuizzSchema(**quizz_without_questions.model_dump(), questions=[])
         questions = await self._quizz_repository.get_quizz_questions(quizz.id)
         for question in questions:
-            question_schema = QuestionSchema(id=question.id, text=question.text, answers=[])
+            question_schema = QuestionSchema(id=question.id, text=question.text, answers=[], multiple=False)
             answers = await self._quizz_repository.get_question_answers(question.id)
+            if len(list(filter(lambda answer: answer.is_correct, answers))) > 1:
+                question_schema.multiple = True
             question_schema.answers = [AnswerSchema.model_validate(answer) for answer in answers]
             quizz.questions.append(question_schema)
         return quizz
@@ -181,7 +187,9 @@ class QuizzService:
         async with self._quizz_repository.unit():
             await self._quizz_repository.update_answer(answer, answer_data)
 
-    async def evaluate_question(self, quizz_id: UUID, question_data: QuestionCompletionSchema) -> float:
+    async def evaluate_question(
+        self, quizz_id: UUID, question_data: QuestionCompletionSchema
+    ) -> tuple[float, QuestionResultSchema]:
         question = await self._quizz_repository.get_question(question_data.question_id)
         if not question:
             raise QuizzNotFound('Question')
@@ -190,6 +198,7 @@ class QuizzService:
         answers = await self._quizz_repository.get_question_answers(question.id)
         correct_answers_count = len([answer for answer in answers if answer.is_correct])
         correct_responses = 0
+        result = QuestionResultSchema(question_id=question.id, choosen_answers=[])
         for answer_id in question_data.answer_ids:
             answer = await self._quizz_repository.get_answer(answer_id)
             if not answer:
@@ -197,19 +206,27 @@ class QuizzService:
             if answer.question_id != question.id:
                 raise QuizzNotFound('Answer')
             if answer.is_correct:
+                result.choosen_answers.append(ChoosenAnswerSchema(is_correct=True, answer_id=answer.id))
                 correct_responses += 1
             else:
+                result.choosen_answers.append(ChoosenAnswerSchema(is_correct=False, answer_id=answer.id))
                 correct_responses -= 1
-        correct_responses = max(0, correct_responses)
-        return correct_responses / correct_answers_count
+        if any(not answer.is_correct for answer in result.choosen_answers):
+            correct_responses = 0
+        else:
+            correct_responses = max(0, correct_responses)
+        return correct_responses / correct_answers_count, result
 
     async def evaluate_quizz(
         self, quizz: QuizzWithNoQuestionsSchema, data: QuizzCompletionSchema, user: UserDetail
     ) -> QuizzResultSchema:
         question_count = await self._quizz_repository.get_quizz_questions_count(data.quizz_id)
         score = 0
+        asssesment = QuizzDetailResultSchema(questions=[])
         for question in data.questions:
-            score += (await self.evaluate_question(data.quizz_id, question)) / question_count
+            question_score, question_result = await self.evaluate_question(data.quizz_id, question)
+            score += question_score / question_count
+            asssesment.questions.append(question_result)
         result = await self._quizz_repository.create_quizz_result(
             user_id=user.id,
             quizz_id=data.quizz_id,
@@ -217,6 +234,9 @@ class QuizzService:
             score=floor(score * 100),
         )
         await self._quizz_repository.commit()
+        await self._quizz_repository.cache_quizz_result(
+            user_id=user.id, company_id=quizz.company_id, quizz_id=data.quizz_id, data=asssesment
+        )
         return QuizzResultSchema(score=result.score)
 
     async def get_average_score_by_company(self, company_id: UUID) -> QuizzResultSchema:
