@@ -6,6 +6,7 @@ from fastapi import Depends
 from app.db.models import Company, CompanyActionType
 from app.repositories.company_action_repository import CompanyActionRepository
 from app.repositories.company_repository import CompanyRepository
+from app.repositories.quizz_repository import QuizzRepository
 from app.schemas.company_action_schema import CompanyActionSchema
 from app.schemas.company_schema import (
     CompanyCreateSchema,
@@ -28,11 +29,13 @@ from .exceptions import (
 class CompanyService:
     def __init__(
         self,
-        company_repository: Annotated[CompanyRepository, Depends(CompanyRepository)],
-        company_action_repository: Annotated[CompanyActionRepository, Depends(CompanyActionRepository)],
+        company_repository: Annotated[CompanyRepository, Depends()],
+        company_action_repository: Annotated[CompanyActionRepository, Depends()],
+        quizz_repository: Annotated[QuizzRepository, Depends()],
     ):
         self._company_repository = company_repository
         self._company_action_repository = company_action_repository
+        self._quizz_repository = quizz_repository
 
     def _user_has_edit_permission(self, company: Company, current_user: UserDetail) -> bool:
         # possible place for future is_admin check
@@ -206,20 +209,28 @@ class CompanyService:
     ) -> UserInCompanyList:
         company = await self.check_company_exists(company_id)
 
-        total_list = UserInCompanyList(users=[], total_count=0)
+        members = await self._quizz_repository.get_company_members_with_lastest_complition_date(company.id)
 
-        members = await self._get_related_users_list(company_id, CompanyActionType.MEMBERSHIP)
-        total_list.users.extend(
-            UserInCompanySchema(**user.dict(), role='member' if user.id != company.owner_id else 'owner')
-            for user in members.users
-        )
-        total_list.total_count += members.total_count
+        schema_list_of_users = []
 
-        admins = await self._get_related_users_list(company_id, CompanyActionType.ADMIN)
-        total_list.users.extend(UserInCompanySchema(**user.dict(), role='admin') for user in admins.users)
-        total_list.total_count += admins.total_count
+        for user in members:
+            user_role = 'member'
+            if user.id == company.owner_id:
+                user_role = 'owner'
+            if user.role == CompanyActionType.ADMIN:
+                user_role = 'admin'
+            user_in_company = UserInCompanySchema(
+                id=user.id,
+                email=user.email,
+                username=user.username,
+                created_at=user.created_at,
+                updated_at=user.updated_at,
+                role=user_role,
+                lastest_quizz_comleted_at=user.lastest_completion,
+            )
+            schema_list_of_users.append(user_in_company)
 
-        return total_list
+        return UserInCompanyList(users=schema_list_of_users, total_count=len(schema_list_of_users))
 
     async def accept_request(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> CompanyActionSchema:
         await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)
