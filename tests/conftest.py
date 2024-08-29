@@ -10,14 +10,14 @@ from app.db.db import async_session
 from app.repositories import UserRepository
 from app.repositories.company_action_repository import CompanyActionRepository
 from app.repositories.company_repository import CompanyRepository
-from app.repositories.notification_reposotory import NotificationRepository
+from app.repositories.notification_repository import NotificationRepository
 from app.repositories.quizz_repository import QuizzRepository
 from app.schemas.company_schema import CompanyCreateSchema, CompanySchema
 from app.schemas.quizz_schema import AnswerCreateSchema, QuestionCreateSchema, QuizzCreateSchema, QuizzSchema
 from app.schemas.user_shema import UserSchema, UserSignUpSchema
 from app.services.authentication_service.service import AuthenticationService
 from app.services.company_service.service import CompanyService
-from app.services.notification_service.service import NotificationService
+from app.services.notification_service import NotificationService
 from app.services.quizz_service.service import QuizzService
 from app.services.users_service import UserService
 
@@ -98,8 +98,8 @@ def notification_repo(get_db):
 
 
 @pytest.fixture
-def notification_service(notification_repo):
-    return NotificationService(notification_repo)
+def notification_service(notification_repo, company_repo, company_action_repo):
+    return NotificationService(notification_repo, company_repo, company_action_repo)
 
 
 @pytest.fixture
@@ -140,8 +140,8 @@ def quizz_repo(get_db):
 
 
 @pytest.fixture
-def quizz_service(quizz_repo):
-    return QuizzService(quizz_repo)
+def quizz_service(quizz_repo, company_repo, notification_service):
+    return QuizzService(quizz_repo, company_repo, notification_service)
 
 
 @pytest.fixture

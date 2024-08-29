@@ -8,3 +8,7 @@ class NotificationNotFound(HTTPException):
         super().__init__(
             status_code=status.HTTP_404_NOT_FOUND, detail=f'Notification with id {notification_id} not found'
         )
+
+
+class CannotSendNotificationException(Exception):
+    pass
