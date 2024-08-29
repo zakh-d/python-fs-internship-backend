@@ -120,7 +120,7 @@ class UserService:
         if invitation is None:
             raise ActionNotFound(CompanyActionType.INVITATION)
         
-        await self._notification_service.send_notification(
+        await self._notification_service.send_notification_to_user(
             to_user_id=(await invitation.awaitable_attrs.company).owner_id,
             title='New member',
             body=f'User: {(await invitation.awaitable_attrs.user).email} has accepted your invitation!'
@@ -147,7 +147,7 @@ class UserService:
             raise UserAlreadyInvitedException(user_id=user_id, company_id=company_id)
         
         user = await self.get_user_by_id(user_id)
-        await self._notification_service.send_notification(
+        await self._notification_service.send_notification_to_user(
             to_user_id=(await request.awaitable_attrs.company).owner_id,
             title='New request',
             body=f'User: {user.email} has requested to join your company!'

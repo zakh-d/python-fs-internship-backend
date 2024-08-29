@@ -184,7 +184,7 @@ class CompanyService:
         intivation = await self._company_action_repository.create_invintation(company_id, user_id)
         if intivation is None:
             raise UserAlreadyInvitedException(user_id, company_id)
-        await self._notification_service.send_notification(
+        await self._notification_service.send_notification_to_user(
             to_user_id=user_id,
             title='Company invitation',
             body=f'You have been invited to join company {company.name}',
@@ -251,7 +251,7 @@ class CompanyService:
         )
         if not request:
             raise ActionNotFound(CompanyActionType.REQUEST)
-        await self._notification_service.send_notification(
+        await self._notification_service.send_notification_to_user(
             to_user_id=user_id,
             title='Company request accepted',
             body=f'Your request to join {company.name} has been accepted',
@@ -296,7 +296,7 @@ class CompanyService:
         if not membership:
             raise ActionNotFound(CompanyActionType.MEMBERSHIP)
         admin_role = await self._company_action_repository.update(membership, CompanyActionType.ADMIN)
-        await self._notification_service.send_notification(
+        await self._notification_service.send_notification_to_user(
             to_user_id=user_id,
             title='Company admin role',
             body=f'You have been assigned as an admin in company {company.name}',
