@@ -34,8 +34,11 @@ class NotificationRepository(RepositoryBase):
         self.db.add(notification)
         return notification
 
-    async def create_notification_and_commit(self, user_id: UUID, title: str, body: str) -> Notification:
+    async def create_notification_and_commit(self, user_id: UUID, title: str, body: str) -> Union[Notification, None]:
         notification = self.create_notification(user_id, title, body)
-        await self.db.commit()
-        await self.db.refresh(notification)
-        return notification
+        try:
+            await self.commit()
+            await self.db.refresh(notification)
+            return notification
+        except Exception:
+            return None

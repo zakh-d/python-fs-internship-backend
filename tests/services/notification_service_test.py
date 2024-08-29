@@ -21,7 +21,7 @@ async def test_send_notification(test_user: UserSchema, notification_service: No
 
 @pytest.mark.asyncio
 async def test_send_notification_to_non_existing_user(notification_service: NotificationService):
-    with pytest.raises(HTTPException):
+    with pytest.raises(CannotSendNotificationException):
         await notification_service.send_notification_to_user(uuid.uuid4(), 'Test title', 'Test body')
 
 
@@ -49,3 +49,19 @@ async def test_send_notification_to_company_members(notification_service: Notifi
 async def test_send_notifications_to_members_of_non_existing_company(notification_service: NotificationService):
     with pytest.raises(CannotSendNotificationException):
         await notification_service.send_notification_to_company_members(uuid.uuid4(), 'Test title', 'Test body')
+
+
+@pytest.mark.asyncio
+async def test_read_notification(test_user: UserSchema, notification_service: NotificationService, notification_repo: NotificationRepository):
+    notification = await notification_service.send_notification_to_user(test_user.id, 'Test title', 'Test body')
+    await notification_service.read_notification(notification.id, test_user.id)
+    notification = await notification_repo.get_notification_by_id(notification.id)
+
+    assert notification.is_read
+
+
+@pytest.mark.asyncio
+async def test_read_notification_by_non_owner(test_user: UserSchema, notification_service: NotificationService):
+    notification = await notification_service.send_notification_to_user(test_user.id, 'Test title', 'Test body')
+    with pytest.raises(HTTPException):
+        await notification_service.read_notification(notification.id, uuid.uuid4())

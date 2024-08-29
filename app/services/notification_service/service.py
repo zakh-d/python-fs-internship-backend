@@ -28,6 +28,8 @@ class NotificationService:
 
     async def send_notification_to_user(self, to_user_id: UUID, title: str, body: str) -> NotificationSchema:
         notification = await self._notification_repository.create_notification_and_commit(to_user_id, title, body)
+        if notification is None:
+            raise CannotSendNotificationException()
         return NotificationSchema.model_validate(notification)
 
     async def send_notification_to_company_members(self, company_id: UUID, title: str, body: str) -> None:
