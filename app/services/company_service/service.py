@@ -116,14 +116,16 @@ class CompanyService:
 
     async def get_company_by_id(self, company_id: UUID, current_user: UserDetail) -> CompanyDetailWithIsMemberSchema:
         company = await self._company_repository.get_company_by_id(company_id)
-        if not company:
-            raise CompanyNotFoundException(company_id)
-        if company.hidden and company.owner_id != current_user.id:
-            raise CompanyNotFoundException(company_id)
-        company.owner = await company.awaitable_attrs.owner
         membership = await self._company_action_repository.get_by_company_and_user(
             company_id=company_id, user_id=current_user.id
         )
+        if not company:
+            raise CompanyNotFoundException(company_id)
+        if company.hidden and company.owner_id != current_user.id and membership is None:
+            raise CompanyNotFoundException(company_id)
+        if company.hidden and membership.type not in [CompanyActionType.MEMBERSHIP, CompanyActionType.ADMIN]:
+            raise CompanyNotFoundException(company_id)
+        company.owner = await company.awaitable_attrs.owner
         status = 'yes'
         if membership is None:
             status = 'no'
