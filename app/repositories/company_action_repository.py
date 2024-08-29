@@ -1,7 +1,8 @@
+from collections.abc import Sequence
 from typing import Union
 from uuid import UUID
 
-from sqlalchemy import and_, delete, select
+from sqlalchemy import and_, delete, or_, select
 
 from app.db.models import Company, CompanyAction, CompanyActionType, User
 from app.repositories.repository_base import RepositoryBase
@@ -99,3 +100,19 @@ class CompanyActionRepository(RepositoryBase):
             )
         )
         await self.db.commit()
+    
+    async def get_companies_user_is_part_of(self, user_id: UUID) -> Sequence[Company]:
+        query = (
+            select(Company)
+            .join(CompanyAction)
+            .where(
+                or_(
+                    Company.owner_id == user_id,
+                    and_(CompanyAction.user_id == user_id, CompanyAction.type == CompanyActionType.MEMBERSHIP),
+                    and_(CompanyAction.user_id == user_id, CompanyAction.type == CompanyActionType.ADMIN),
+                )
+            )
+            .distinct()
+        )
+        result = await self.db.execute(query)
+        return result.scalars().all()

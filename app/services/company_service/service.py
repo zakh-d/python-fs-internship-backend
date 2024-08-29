@@ -312,3 +312,11 @@ class CompanyService:
             raise ActionNotFound(CompanyActionType.ADMIN)
         membership = await self._company_action_repository.update(admin_role, CompanyActionType.MEMBERSHIP)
         return membership
+
+    async def get_companies_user_is_part_of(self, user_id: UUID) -> CompanyListSchema:
+        companies = await self._company_action_repository.get_companies_user_is_part_of(user_id)
+        for company in companies:
+            company.owner = await company.awaitable_attrs.owner
+        return CompanyListSchema(
+            companies=[CompanySchema.model_validate(company) for company in companies], total_count=len(companies)
+        )
