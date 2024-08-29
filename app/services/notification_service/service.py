@@ -5,7 +5,7 @@ from fastapi import Depends
 
 from app.db.models import CompanyActionType
 from app.repositories.company_action_repository import CompanyActionRepository
-from app.repositories.notification_reposotory import NotificationRepository
+from app.repositories.notification_repository import NotificationRepository
 from app.schemas.notification_schema import NotificationSchema
 from app.services.notification_service.exceptions import NotificationNotFound
 
@@ -34,10 +34,11 @@ class NotificationService:
         for member in members:
             await self.send_notification_to_user(member.id, title, body)
 
-    async def read_notification(self, notification_id: int, user_id: UUID) -> NotificationSchema:
+    async def read_notification(self, notification_id: UUID, user_id: UUID) -> NotificationSchema:
         notification = await self._notification_repository.get_notification_by_id(notification_id)
+        if notification is None:
+            raise NotificationNotFound(notification_id)
         if notification.user_id != user_id:
             raise NotificationNotFound(notification_id)
-        notification.is_read = True
-        self._notification_repository.commit()
+        notification = await self._notification_repository.read_notification(notification)
         return NotificationSchema.model_validate(notification)

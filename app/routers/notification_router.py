@@ -1,4 +1,5 @@
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
@@ -20,7 +21,7 @@ async def get_user_notifications(
 
 @router.put('/{notification_id}/')
 async def read_notification(
-    notification_id: int,
+    notification_id: UUID,
     notification_service: Annotated[NotificationService, Depends()],
     current_user: Annotated[UserSchema, Depends(get_current_user)],
 ) -> NotificationSchema:
