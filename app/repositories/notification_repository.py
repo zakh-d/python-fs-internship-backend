@@ -22,7 +22,7 @@ class NotificationRepository(RepositoryBase):
 
     async def get_notification_by_id(self, notification_id: UUID) -> Union[Notification, None]:
         return await self._get_item_by_id(notification_id, Notification)
-    
+
     async def read_notification(self, notification: Notification) -> Notification:
         self.db.add(notification)
         notification.is_read = True

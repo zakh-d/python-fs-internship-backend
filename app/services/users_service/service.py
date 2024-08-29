@@ -31,6 +31,7 @@ class UserService:
         self._user_repository = user_repository
         self._company_action_repository = company_action_repository
         self._notification_service = notification_service
+
     async def get_all_users(self, page: int, limit: int) -> UserList:
         offset = (page - 1) * limit
         users = await self._user_repository.get_all_users(offset, limit)
@@ -119,11 +120,11 @@ class UserService:
         )
         if invitation is None:
             raise ActionNotFound(CompanyActionType.INVITATION)
-        
+
         await self._notification_service.send_notification_to_user(
             to_user_id=(await invitation.awaitable_attrs.company).owner_id,
             title='New member',
-            body=f'User: {(await invitation.awaitable_attrs.user).email} has accepted your invitation!'
+            body=f'User: {(await invitation.awaitable_attrs.user).email} has accepted your invitation!',
         )
         await self._company_action_repository.update(invitation, CompanyActionType.MEMBERSHIP)
 
@@ -145,12 +146,12 @@ class UserService:
 
         if request is None:
             raise UserAlreadyInvitedException(user_id=user_id, company_id=company_id)
-        
+
         user = await self.get_user_by_id(user_id)
         await self._notification_service.send_notification_to_user(
             to_user_id=(await request.awaitable_attrs.company).owner_id,
             title='New request',
-            body=f'User: {user.email} has requested to join your company!'
+            body=f'User: {user.email} has requested to join your company!',
         )
         return CompanyActionSchema.model_validate(request)
 
