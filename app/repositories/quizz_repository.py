@@ -240,3 +240,15 @@ class QuizzRepository(RepositoryBase):
             answer_id='*',
         )
         return await self.get_cached_responses_by_key(lookup_key)
+
+    async def get_company_members_responses(
+            self, company_id: UUID
+    ) -> list[QuizzDetailResultSchema]:
+        lookup_key = self._create_key(
+            user_id='*',
+            company_id=company_id,
+            quizz_id='*',
+            question_id='*',
+            answer_id='*',
+        )
+        return await self.get_cached_responses_by_key(lookup_key)

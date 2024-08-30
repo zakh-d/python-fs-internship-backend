@@ -130,8 +130,8 @@ def quizz_repo(get_db):
 
 
 @pytest.fixture
-def quizz_service(quizz_repo):
-    return QuizzService(quizz_repo)
+def quizz_service(quizz_repo, user_repo):
+    return QuizzService(quizz_repository=quizz_repo, user_repository=user_repo)
 
 @pytest.fixture
 async def test_quizz(quizz_service: QuizzService, company_and_users) -> QuizzSchema:

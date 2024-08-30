@@ -156,9 +156,7 @@ class QuizzResultDisplaySchema(BaseModel):
     questions: list[QuestionResultDisplaySchema]
 
 
-class QuizzResultDisplayWithUserSchema(BaseModel):
-    score: float
-    questions: list[QuestionResultDisplaySchema]
+class QuizzResultDisplayWithUserSchema(QuizzResultDisplaySchema):
     user_email: str
 
 
