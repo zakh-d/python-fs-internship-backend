@@ -40,9 +40,11 @@ from app.services.quizz_service.exceptions import QuizzError, QuizzNotFound
 
 
 class QuizzService:
-    def __init__(self,
-                 quizz_repository: Annotated[QuizzRepository, Depends()],
-                 user_repository: Annotated[UserRepository, Depends()]) -> None:
+    def __init__(
+        self,
+        quizz_repository: Annotated[QuizzRepository, Depends()],
+        user_repository: Annotated[UserRepository, Depends()],
+    ) -> None:
         self._quizz_repository = quizz_repository
         self._user_repository = user_repository
 
@@ -394,7 +396,7 @@ class QuizzService:
     async def get_user_responses_in_company_from_cache_csv(self, user_id: UUID, company_id: UUID) -> str:
         responses = await self._quizz_repository.get_user_cached_responses_in_company(user_id, company_id)
         return await self._user_responses_to_displayed_csv(responses)
-    
+
     async def get_company_members_responses_from_cache_json(self, company_id: UUID) -> QuizzResultListDisplaySchema:
         responses = await self._quizz_repository.get_company_members_responses(company_id)
         return await self._user_responses_to_displayed_json(responses)
