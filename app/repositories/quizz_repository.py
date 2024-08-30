@@ -181,8 +181,34 @@ class QuizzRepository(RepositoryBase):
     ) -> str:
         return f'answer:{user_id}:{company_id}:{quizz_id}:{question_id}:{answer_id}'
 
-    async def get_user_quizz_cache_keys(self, user_id: UUID, quizz_id: UUID) -> QuizzDetailResultSchema:
+    async def get_cached_responses_by_key(self, lookup_key: str) -> list[QuizzDetailResultSchema]:
         redis = await get_redis_client()
+        keys = await redis.keys(lookup_key)
+        responses = await redis.mget(keys)
+        keys = [key.decode() for key in keys]
+        used_quizzes = {}
+        used_questions_in_quizz = {}
+        list_of_responses: list[QuizzDetailResultSchema] = []
+        for key, response in zip(keys, responses):
+            user_id, company_id, quizz_id, question_id, answer_id = self._parse_key(key)
+            if quizz_id not in used_quizzes:
+                used_quizzes[quizz_id] = len(list_of_responses)
+                list_of_responses.append(QuizzDetailResultSchema(user_id=user_id, quizz_id=quizz_id, questions=[]))
+            question_key = str(user_id) + str(question_id)
+            if question_key not in used_questions_in_quizz:
+                used_questions_in_quizz[question_key] = len(list_of_responses[used_quizzes[quizz_id]].questions)
+                list_of_responses[used_quizzes[quizz_id]].questions.append(
+                    QuestionResultSchema(question_id=question_id, choosen_answers=[])
+                )
+            list_of_responses[used_quizzes[quizz_id]].questions[
+                used_questions_in_quizz[question_key]
+            ].choosen_answers.append(ChoosenAnswerSchema(answer_id=answer_id, is_correct=response == b'1'))
+        await redis.close()
+        return list_of_responses
+
+    async def get_user_quizz_response_from_cache(
+        self, user_id: UUID, quizz_id: UUID
+    ) -> Union[QuizzDetailResultSchema, None]:
         lookup_key = self._create_key(
             user_id=user_id,
             company_id='*',
@@ -190,19 +216,27 @@ class QuizzRepository(RepositoryBase):
             question_id='*',
             answer_id='*',
         )
-        keys = await redis.keys(lookup_key)
-        responses = await redis.mget(keys)
-        keys = [key.decode() for key in keys]
-        result = QuizzDetailResultSchema(questions=[])
-        for key, response in zip(keys, responses):
-            _, _, _, cached_question_id, cached_answer_id = self._parse_key(key)
-            try:
-                question_index = [q.question_id for q in result.questions].index(cached_question_id)
-            except ValueError:
-                result.questions.append(QuestionResultSchema(question_id=cached_question_id, choosen_answers=[]))
-                question_index = len(result.questions) - 1
-            result.questions[question_index].choosen_answers.append(
-                ChoosenAnswerSchema(answer_id=cached_answer_id, is_correct=response == b'1')
-            )
-        await redis.close()
-        return result
+        results = await self.get_cached_responses_by_key(lookup_key)
+        return results[0] if results else None
+
+    async def get_user_cached_responses(self, user_id: UUID) -> list[QuizzDetailResultSchema]:
+        lookup_key = self._create_key(
+            user_id=user_id,
+            company_id='*',
+            quizz_id='*',
+            question_id='*',
+            answer_id='*',
+        )
+        return await self.get_cached_responses_by_key(lookup_key)
+
+    async def get_user_cached_responses_in_company(
+        self, user_id: UUID, copmany_id: UUID
+    ) -> list[QuizzDetailResultSchema]:
+        lookup_key = self._create_key(
+            user_id=user_id,
+            company_id=copmany_id,
+            quizz_id='*',
+            question_id='*',
+            answer_id='*',
+        )
+        return await self.get_cached_responses_by_key(lookup_key)

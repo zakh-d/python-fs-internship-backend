@@ -136,6 +136,8 @@ class QuestionResultSchema(BaseModel):
 
 
 class QuizzDetailResultSchema(BaseModel):
+    quizz_id: UUID
+    user_id: UUID
     questions: list[QuestionResultSchema]
 
 

@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 
 from app.core.security import get_current_user
 from app.schemas.company_action_schema import CompanyActionSchema
@@ -171,3 +171,11 @@ async def get_user_quizzes_average_score(
 ) -> QuizzResultSchema:
     user = await user_service.get_user_by_id(user_id)
     return await quiz_service.get_average_score_by_user(user.id)
+
+
+@router.get('/{user_id}/quizz_responses/', tags=['quizzes', 'users'], dependencies=[Depends(only_user_itself)])
+async def get_user_quizz_responses(
+    user_id: UUID,
+    quiz_service: Annotated[QuizzService, Depends()],
+) -> Response:
+    return await quiz_service.get_user_responses(user_id)

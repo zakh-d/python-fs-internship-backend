@@ -255,16 +255,11 @@ class QuizzService:
 
     async def get_average_score_by_quizz(self, quizz_id: UUID) -> QuizzResultSchema:
         return QuizzResultSchema(score=await self._quizz_repository.get_average_score_by_quizz(quizz_id))
-
-    async def get_cached_user_response_json(self, user_id: UUID, quizz_id: UUID) -> QuizzResultDisplaySchema:
-        quizz = await self.get_quizz(quizz_id)
+    
+    async def get_quizz_response_displayed(self, response: QuizzDetailResultSchema) -> QuizzResultDisplaySchema:
+        quizz = await self.get_quizz(response.quizz_id)
         quizz = await self.fetch_quizz_questions(quizz)
-
-        result = await self._quizz_repository.get_user_quizz_cache_keys(user_id, quizz_id)
-        if len(result.questions) == 0:
-            raise QuizzNotFound('User response')
-
-        quizz_result = await self._quizz_repository.get_latest_quizz_result(user_id, quizz_id)
+        quizz_result = await self._quizz_repository.get_latest_quizz_result(response.user_id, response.quizz_id)
         if not quizz_result:
             raise QuizzNotFound('Quizz result')
 
@@ -272,7 +267,7 @@ class QuizzService:
         answers_text_by_ids = {answer.id: answer.text for question in quizz.questions for answer in question.answers}
         result_display = QuizzResultDisplaySchema(score=quizz_result.score, questions=[])
 
-        for question in result.questions:
+        for question in response.questions:
             question_text = questions_text_by_ids[question.question_id]
             choosen_answers = []
             for choosen_answer in question.choosen_answers:
@@ -286,30 +281,29 @@ class QuizzService:
 
         return result_display
 
-    async def get_cached_user_response_csv(self, user_id: UUID, quizz_id: UUID) -> str:
-        quizz = await self.get_quizz(quizz_id)
-        quizz = await self.fetch_quizz_questions(quizz)
+    async def get_cached_user_response_json(self, user_id: UUID, quizz_id: UUID) -> QuizzResultDisplaySchema:
+        result = await self._quizz_repository.get_user_quizz_response_from_cache(user_id, quizz_id)
+        if result is None:
+            raise QuizzNotFound('User response')
+        return await self.get_quizz_response_displayed(result)
 
-        result = await self._quizz_repository.get_user_quizz_cache_keys(user_id, quizz_id)
-        if len(result.questions) == 0:
+    async def get_cached_user_response_csv(self, user_id: UUID, quizz_id: UUID) -> str:
+
+        response = await self._quizz_repository.get_user_quizz_response_from_cache(user_id, quizz_id)
+        if response is None:
             raise QuizzNotFound('User response')
 
-        quizz_result = await self._quizz_repository.get_latest_quizz_result(user_id, quizz_id)
-        if not quizz_result:
-            raise QuizzNotFound('Quizz result')
-
-        questions_text_by_ids = {question.id: question.text for question in quizz.questions}
-        answers_text_by_ids = {answer.id: answer.text for question in quizz.questions for answer in question.answers}
+        response_displayed = await self.get_quizz_response_displayed(response)
 
         output = io.StringIO()
         writter = csv.DictWriter(output, fieldnames=['Question', 'Answer', 'Is Correct'])
         writter.writeheader()
-        for question in result.questions:
+        for question in response_displayed.questions:
             for choosen_answer in question.choosen_answers:
                 writter.writerow(
                     {
-                        'Question': questions_text_by_ids[question.question_id],
-                        'Answer': answers_text_by_ids[choosen_answer.answer_id],
+                        'Question': question.text,
+                        'Answer': choosen_answer.text,
                         'Is Correct': choosen_answer.is_correct,
                     }
                 )
@@ -351,3 +345,15 @@ class QuizzService:
             except QuizzNotFound:
                 continue
         return output.getvalue()
+    
+    async def get_user_responses_from_cache_json(self, user_id: UUID) -> QuizzResultListDisplaySchema:
+        responses = await self._quizz_repository.get_user_cached_responses(user_id)
+        responses_list = QuizzResultListDisplaySchema(
+            responses=[]
+        )
+
+        for response in responses:
+            responses_list.responses.append(await self.get_quizz_response_displayed(response))
+        return responses_list
+            
+            
