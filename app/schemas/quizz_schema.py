@@ -137,6 +137,8 @@ class QuestionResultSchema(BaseModel):
 
 
 class QuizzDetailResultSchema(BaseModel):
+    quizz_id: UUID
+    user_id: UUID
     questions: list[QuestionResultSchema]
 
 
@@ -155,9 +157,7 @@ class QuizzResultDisplaySchema(BaseModel):
     questions: list[QuestionResultDisplaySchema]
 
 
-class QuizzResultDisplayWithUserSchema(BaseModel):
-    score: float
-    questions: list[QuestionResultDisplaySchema]
+class QuizzResultDisplayWithUserSchema(QuizzResultDisplaySchema):
     user_email: str
 
 

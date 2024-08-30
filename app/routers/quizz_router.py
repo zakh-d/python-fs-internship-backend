@@ -199,7 +199,7 @@ async def get_quizz_average_score(
 
 
 @router.get('/{quizz_id}/responses/my/')
-async def get_my_quizz_results(
+async def get_my_quizz_response(
     quizz_id: UUID,
     quizz_service: Annotated[QuizzService, Depends()],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
@@ -214,7 +214,7 @@ async def get_my_quizz_results(
 
 
 @router.get('/{quizz_id}/responses/{user_id}/')
-async def get_user_quizz_results(
+async def get_user_quizz_response(
     quizz_id: UUID,
     user_id: UUID,
     quizz_service: Annotated[QuizzService, Depends()],
