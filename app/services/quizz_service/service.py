@@ -255,7 +255,7 @@ class QuizzService:
 
     async def get_average_score_by_quizz(self, quizz_id: UUID) -> QuizzResultSchema:
         return QuizzResultSchema(score=await self._quizz_repository.get_average_score_by_quizz(quizz_id))
-    
+
     async def get_quizz_response_displayed(self, response: QuizzDetailResultSchema) -> QuizzResultDisplaySchema:
         quizz = await self.get_quizz(response.quizz_id)
         quizz = await self.fetch_quizz_questions(quizz)
@@ -288,7 +288,6 @@ class QuizzService:
         return await self.get_quizz_response_displayed(result)
 
     async def get_cached_user_response_csv(self, user_id: UUID, quizz_id: UUID) -> str:
-
         response = await self._quizz_repository.get_user_quizz_response_from_cache(user_id, quizz_id)
         if response is None:
             raise QuizzNotFound('User response')
@@ -345,15 +344,47 @@ class QuizzService:
             except QuizzNotFound:
                 continue
         return output.getvalue()
-    
+
+    async def _user_responses_to_displayed_json(
+        self, responses: list[QuizzDetailResultSchema]
+    ) -> QuizzResultListDisplaySchema:
+        list_ = QuizzResultListDisplaySchema(responses=[])
+        for response in responses:
+            list_.responses.append(await self.get_quizz_response_displayed(response))
+        return list_
+
     async def get_user_responses_from_cache_json(self, user_id: UUID) -> QuizzResultListDisplaySchema:
         responses = await self._quizz_repository.get_user_cached_responses(user_id)
-        responses_list = QuizzResultListDisplaySchema(
-            responses=[]
-        )
+        return await self._user_responses_to_displayed_json(responses)
 
+    async def get_user_responses_in_company_from_cache(
+        self, user_id: UUID, company_id: UUID
+    ) -> QuizzResultListDisplaySchema:
+        responses = await self._quizz_repository.get_user_cached_responses_in_company(user_id, company_id)
+        return await self._user_responses_to_displayed_json(responses)
+
+    async def _user_responses_to_displayed_csv(self, responses: list[QuizzDetailResultSchema]) -> str:
+        output = io.StringIO()
+        writter = csv.DictWriter(output, fieldnames=['Quizz', 'Question', 'Answer', 'Is Correct'])
+        writter.writeheader()
         for response in responses:
-            responses_list.responses.append(await self.get_quizz_response_displayed(response))
-        return responses_list
-            
-            
+            response_displayed = await self.get_quizz_response_displayed(response)
+            for question in response_displayed.questions:
+                for choosen_answer in question.choosen_answers:
+                    writter.writerow(
+                        {
+                            'Quizz': (await self._quizz_repository.get_quizz(response.quizz_id)).title,
+                            'Question': question.text,
+                            'Answer': choosen_answer.text,
+                            'Is Correct': choosen_answer.is_correct,
+                        }
+                    )
+        return output.getvalue()
+
+    async def get_user_responses_from_cache_csv(self, user_id: UUID) -> str:
+        responses = await self._quizz_repository.get_user_cached_responses(user_id)
+        return await self._user_responses_to_displayed_csv(responses)
+
+    async def get_user_responses_in_company_from_cache_csv(self, user_id: UUID, company_id: UUID) -> str:
+        responses = await self._quizz_repository.get_user_cached_responses_in_company(user_id, company_id)
+        return await self._user_responses_to_displayed_csv(responses)

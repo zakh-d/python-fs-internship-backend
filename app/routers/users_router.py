@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response
@@ -177,5 +177,9 @@ async def get_user_quizzes_average_score(
 async def get_user_quizz_responses(
     user_id: UUID,
     quiz_service: Annotated[QuizzService, Depends()],
+    format: Literal['json', 'csv'] = 'json',
 ) -> Response:
-    return await quiz_service.get_user_responses(user_id)
+    if format == 'csv':
+        return Response(content=await quiz_service.get_user_responses_from_cache_csv(user_id), media_type='text/csv')
+    data = await quiz_service.get_user_responses_from_cache_json(user_id)
+    return Response(content=data.model_dump_json(), media_type='text/json')
