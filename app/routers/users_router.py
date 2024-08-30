@@ -2,7 +2,7 @@ import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from app.core.security import get_current_user
 from app.schemas.company_action_schema import CompanyActionSchema
@@ -176,6 +176,18 @@ async def get_user_quizzes_average_score(
 ) -> QuizzResultSchema:
     user = await user_service.get_user_by_id(user_id)
     return await quiz_service.get_average_score_by_user(user.id)
+
+
+@router.get('/{user_id}/quizz_responses/', tags=['quizzes', 'users'], dependencies=[Depends(only_user_itself)])
+async def get_user_quizz_responses(
+    user_id: UUID,
+    quiz_service: Annotated[QuizzService, Depends()],
+    format: Literal['json', 'csv'] = 'json',
+) -> Response:
+    if format == 'csv':
+        return Response(content=await quiz_service.get_user_responses_from_cache_csv(user_id), media_type='text/csv')
+    data = await quiz_service.get_user_responses_from_cache_json(user_id)
+    return Response(content=data.model_dump_json(), media_type='text/json')
 
 
 @router.get(

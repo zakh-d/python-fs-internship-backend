@@ -140,8 +140,8 @@ def quizz_repo(get_db):
 
 
 @pytest.fixture
-def quizz_service(quizz_repo, company_repo, notification_service):
-    return QuizzService(quizz_repo, company_repo, notification_service)
+def quizz_service(quizz_repo, company_repo, notification_service, user_repo):
+    return QuizzService(quizz_repository=quizz_repo, user_repository=user_repo, company_repository=company_repo, notification_service=notification_service)
 
 
 @pytest.fixture
