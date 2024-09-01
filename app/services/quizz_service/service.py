@@ -2,10 +2,9 @@ import csv
 import datetime
 import io
 from math import floor
-from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.company_repository import CompanyRepository
 from app.repositories.quizz_repository import QuizzRepository
@@ -49,17 +48,11 @@ from app.services.quizz_service.exceptions import QuizzError, QuizzNotFound
 
 
 class QuizzService:
-    def __init__(
-        self,
-        quizz_repository: Annotated[QuizzRepository, Depends()],
-        user_repository: Annotated[UserRepository, Depends()],
-        company_repository: Annotated[CompanyRepository, Depends()],
-        notification_service: Annotated[NotificationService, Depends()],
-    ) -> None:
-        self._quizz_repository = quizz_repository
-        self._company_repository = company_repository
-        self._notification_service = notification_service
-        self._user_repository = user_repository
+    def __init__(self, session: AsyncSession) -> None:
+        self._quizz_repository = QuizzRepository(session)
+        self._company_repository = CompanyRepository(session)
+        self._user_repository = UserRepository(session)
+        self._notification_service = NotificationService(session)
 
     async def create_quizz(self, quizz_data: QuizzCreateSchema, company_id: UUID) -> QuizzSchema:
         async with self._quizz_repository.unit():

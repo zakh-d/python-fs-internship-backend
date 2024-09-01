@@ -1,11 +1,11 @@
 import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Annotated, Union
+from typing import Union
 from uuid import UUID
 
 import jwt
-from fastapi import Depends
 from passlib.hash import argon2
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.repositories.user_repository import UserRepository
@@ -13,8 +13,8 @@ from app.schemas.user_shema import UserDetail, UserSchema, UserSignInSchema
 
 
 class AuthenticationService:
-    def __init__(self, user_repository: Annotated[UserRepository, Depends(UserRepository)]):
-        self.user_repository = user_repository
+    def __init__(self, session: AsyncSession):
+        self.user_repository = UserRepository(session)
 
     async def authenticate(self, user_signin_request: UserSignInSchema) -> Union[UserSchema, None]:
         user = await self.user_repository.get_user_by_email(user_signin_request.email)

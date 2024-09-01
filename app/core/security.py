@@ -3,6 +3,7 @@ from typing import Annotated, Union
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
+from app.core.dependencies import get_authentication_service
 from app.schemas.user_shema import UserDetail
 from app.services.authentication_service.service import AuthenticationService
 
@@ -22,7 +23,7 @@ def get_token_from_header(
 
 async def get_current_user(
     token: Annotated[str, Depends(get_token_from_header)],
-    auth_service: Annotated[AuthenticationService, Depends(AuthenticationService)],
+    auth_service: Annotated[AuthenticationService, Depends(get_authentication_service)],
 ) -> UserDetail:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
