@@ -100,7 +100,7 @@ class CompanyActionRepository(RepositoryBase):
             )
         )
         await self.db.commit()
-    
+
     async def get_companies_user_is_part_of(self, user_id: UUID) -> Sequence[Company]:
         query = (
             select(Company)

@@ -375,7 +375,6 @@ class QuizzRepository(RepositoryBase):
             .subquery()
         )
 
-
         not_overdued_quizzes = (
             select(Quizz.id)
             .join(QuizzResult)
@@ -387,16 +386,13 @@ class QuizzRepository(RepositoryBase):
             )
         )
 
-        overdued_quizzes = (
-            select(Quizz)
-            .where(
-                and_(
-                    Quizz.company_id.in_(user_companies),
-                    Quizz.id.not_in(not_overdued_quizzes),
-                )
+        overdued_quizzes = select(Quizz).where(
+            and_(
+                Quizz.company_id.in_(user_companies),
+                Quizz.id.not_in(not_overdued_quizzes),
             )
         )
 
         result = await self.db.execute(overdued_quizzes)
-        
+
         return result.scalars().all()

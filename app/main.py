@@ -20,19 +20,9 @@ from app.utils.scheduler import check_quizz_completions
 async def start_quizz_scheduler(app: FastAPI) -> AsyncGenerator[None, None]:
     async with async_session() as session:
         scheduler = AsyncIOScheduler()
-        midnight_trigger = CronTrigger(
-            second=0,
-            minute=0,
-            hour=0,
-            day='*',
-            month='*',
-            year='*'
-        )
+        midnight_trigger = CronTrigger(second=0, minute=0, hour=0, day='*', month='*', year='*')
         task = scheduler.add_job(
-            check_quizz_completions,
-            args=[session],
-            trigger=midnight_trigger,
-            replace_existing=True
+            check_quizz_completions, args=[session], trigger=midnight_trigger, replace_existing=True
         )
         scheduler.start()
         yield
