@@ -32,7 +32,7 @@ jobs:
         echo "AUTH0_EMAIL_NAME_IN_TOKEN=${{ secrets.AUTH0_EMAIL_NAME_IN_TOKEN }}" >> env
         echo "AUTH0_AUDIENCE=${{ secrets.AUTH0_AUDIENCE }}" >> env
     - name: Copy files to remote server
-      run: scp -r ./* ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/
+      run: scp -r * ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/
     - name: SSH into remote server and deploy
       run: ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "chmod +x ./scripts/deploy.sh && ./scripts/deploy.sh"
     - name:  Clean up SSH key
