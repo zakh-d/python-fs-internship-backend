@@ -24,5 +24,5 @@ fi
 
 cd service
 sudo docker rm -f app-container
-suod docker build -f Dockerfile.prod -t app-image .
+sudo docker build -f Dockerfile.prod -t app-image .
 sudo docker run --env-file env -d --name app-container -p 8000:8000 app-image
