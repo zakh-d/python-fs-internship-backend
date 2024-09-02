@@ -23,6 +23,6 @@ EOF'
 fi
 
 cd service
-docker stop app-container
-docker build -f Dockerfile.prod -t app-image .
-docker run --env-file env -d --name app-container -p 8000:8000 app-image
+sudo docker rm -f app-container
+suod docker build -f Dockerfile.prod -t app-image .
+sudo docker run --env-file env -d --name app-container -p 8000:8000 app-image
