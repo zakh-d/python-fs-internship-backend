@@ -36,5 +36,5 @@ jobs:
     - name: SSH into remote server and deploy
       run: ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "chmod +x ./scripts/deploy.sh && ./scripts/deploy.sh"
     - name:  Clean up SSH key
-        if: always()
-        run: rm -f ~/.ssh/id_rsa
+      if: always()
+      run: rm -f ~/.ssh/id_rsa
