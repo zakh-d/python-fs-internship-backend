@@ -1,0 +1,40 @@
+name: "Deploy to AWS"
+
+on:
+  push:
+    branches: [ "development", "BE-19-20-aws-deploying" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up SSH key
+      run: |
+        mkdir -p ~/.ssh/
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+    - name: Create env file
+      run: |
+        touch env
+        echo "ALLOWED_HOSTS=${{ secrets.ALLOWED_HOSTS }}" >> env
+        echo "POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}" >> env
+        echo "POSTGRES_USER=${{ secrets.POSTGRES_USER }}" >> env
+        echo "POSTGRES_DB=${{ secrets.POSTGRES_DB }}" >> env
+        echo "POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}" >> env
+        echo "POSTGRES_DB_HOST=${{ secrets.POSTGRES_DB_HOST }}" >> env
+        echo "REDIS_HOST=${{ secrets.REDIS_HOST }}" >> env
+        echo "ENVIRONMENT=${{ secretsenvIRONMENT }}" >> env
+        echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> env
+        echo "AUTH0_SIGNING_SECRET=${{ secrets.AUTH0_SIGNING_SECRET }}" >> env
+        echo "AUTH0_EMAIL_NAME_IN_TOKEN=${{ secrets.AUTH0_EMAIL_NAME_IN_TOKEN }}" >> env
+        echo "AUTH0_AUDIENCE=${{ secrets.AUTH0_AUDIENCE }}" >> env
+    - name: Copy files to remote server
+      run: scp -r ./* ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/
+    - name: SSH into remote server and deploy
+      run: ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "chmod +x ./scripts/deploy.sh && ./scripts/deploy.sh"
+    - name:  Clean up SSH key
+        if: always()
+        run: rm -f ~/.ssh/id_rsa
