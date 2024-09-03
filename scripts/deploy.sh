@@ -26,3 +26,4 @@ cd service
 sudo docker rm -f app-container
 sudo docker build -f Dockerfile.prod -t app-image .
 sudo docker run --env-file env -d --name app-container -p 8000:8000 app-image
+sudo docker exec app-container alembic upgrade head
