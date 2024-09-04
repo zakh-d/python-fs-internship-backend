@@ -3,6 +3,7 @@ from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
+from fastapi.responses import FileResponse
 
 from app.core.dependencies import get_company_service, get_quizz_service
 from app.core.security import get_current_user
@@ -302,13 +303,29 @@ async def get_average_user_score_for_quizz_over_time(
 EXCEL_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
 
 
-@router.post('/import/')
+@router.post('/import/{company_id}/')
 async def import_quizz_data_from_excel(
+    company_id: UUID,
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
     excel_file: UploadFile,
-) -> None:
+) -> QuizzSchema:
+    await company_service.check_owner_or_admin(company_id, current_user.id)
     if excel_file.size < 8 or not is_excel_file(await excel_file.read(8)):
         raise HTTPException(status_code=400, detail='Invalid file format. Only XLSX files are accepted.')
     await excel_file.seek(0)
 
-
+    creation_schema = quizz_service.get_schema_from_excel(await excel_file.read(), company_id)
     await excel_file.close()
+    try:
+        creation_schema = QuizzCreateSchema.model_validate(creation_schema)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return await quizz_service.create_quizz(creation_schema, creation_schema.company_id)
+
+
+
+@router.get('/import/example/')
+async def get_example_quizz_import_template() -> Response:
+    return FileResponse('assets/quizz_template.xlsx', media_type=EXCEL_MIME_TYPE)

@@ -4,6 +4,8 @@ import io
 from math import floor
 from uuid import UUID
 
+import openpyxl
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.company_repository import CompanyRepository
@@ -504,3 +506,50 @@ class QuizzService:
     async def get_company_members_responses_from_cache_csv(self, company_id: UUID) -> str:
         responses = await self._quizz_repository.get_company_members_responses(company_id)
         return await self._user_responses_to_displayed_csv(responses)
+
+    def get_schema_from_excel(self, file: bytes, company_id: UUID) -> QuizzCreateSchema:
+        workbook = openpyxl.load_workbook(io.BytesIO(file))
+        ws = workbook.active
+
+        excel_quizz_prolog = ['QUIZZ TITLE:', 'QUIZZ DESCRIPTION:', 'QUIZZ FREQUENCY:', 'QUESTION:']
+
+        for i, expected_value in enumerate(excel_quizz_prolog):
+            if ws[f'A{i + 1}'].value != expected_value:
+                raise QuizzError(
+                    'Invalid file format, download example to see correct format\n'
+                    f'Expected: {expected_value}, got: {ws[f"A{i + 1}"].value}'
+                    )
+
+        quizz_title = ws['B1'].value
+        quizz_description = ws['B2'].value
+        frequency = int(ws['B3'].value)
+
+
+        questions = []
+        curr_row = 4
+        try:
+            while ws[f'A{curr_row}'].value == 'QUESTION:':
+                question_text = ws[f'B{curr_row}'].value
+                curr_row += 1
+                
+                answers = []
+
+                while ws[f'A{curr_row}'].value == 'ANSWER:':
+                    answer_text = ws[f'B{curr_row}'].value
+                    is_correct = ws[f'C{curr_row}'].value == 'CORRECT'
+                    answers.append(AnswerCreateSchema(text=answer_text, is_correct=is_correct))
+                    curr_row += 1
+
+                question_data = QuestionCreateSchema(text=question_text, answers=answers)
+                questions.append(question_data)
+
+            quizz_data = QuizzCreateSchema(
+                company_id=company_id,
+                title=quizz_title,
+                description=quizz_description,
+                frequency=frequency,
+                questions=questions,
+            )
+            return quizz_data
+        except ValidationError as e:
+            raise QuizzError(e.errors()[0]['msg'])
