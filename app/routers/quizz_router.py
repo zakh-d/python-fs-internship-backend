@@ -2,7 +2,7 @@ import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile
 
 from app.core.dependencies import get_company_service, get_quizz_service
 from app.core.security import get_current_user
@@ -22,6 +22,7 @@ from app.schemas.quizz_schema import (
 from app.schemas.user_shema import UserDetail
 from app.services.company_service.service import CompanyService
 from app.services.quizz_service.service import QuizzService
+from app.utils.excel_mime import is_excel_file
 
 router = APIRouter()
 
@@ -296,3 +297,18 @@ async def get_average_user_score_for_quizz_over_time(
         quizz_id=quizz_id,
         interval=datetime.timedelta(weeks=4),  # 4 weeks in a month
     )
+
+
+EXCEL_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+
+
+@router.post('/import/')
+async def import_quizz_data_from_excel(
+    excel_file: UploadFile,
+) -> None:
+    if excel_file.size < 8 or not is_excel_file(await excel_file.read(8)):
+        raise HTTPException(status_code=400, detail='Invalid file format. Only XLSX files are accepted.')
+    await excel_file.seek(0)
+
+
+    await excel_file.close()
