@@ -300,7 +300,7 @@ async def get_average_user_score_for_quizz_over_time(
     )
 
 
-EXCEL_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+EXCEL_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 
 
 @router.post('/import/{company_id}/')
@@ -318,12 +318,8 @@ async def import_quizz_data_from_excel(
 
     creation_schema = quizz_service.get_schema_from_excel(await excel_file.read(), company_id)
     await excel_file.close()
-    try:
-        creation_schema = QuizzCreateSchema.model_validate(creation_schema)
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    return await quizz_service.create_quizz(creation_schema, creation_schema.company_id)
 
+    return await quizz_service.create_or_update_quizz(creation_schema)
 
 
 @router.get('/import/example/')

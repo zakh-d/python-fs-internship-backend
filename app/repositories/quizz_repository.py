@@ -47,11 +47,26 @@ class QuizzRepository(RepositoryBase):
     async def get_quizz(self, quizz_id: UUID) -> Union[Quizz, None]:
         return await self._get_item_by_id(quizz_id, Quizz)
 
+    async def get_quizz_by_company_and_title(self, company_id: UUID, title: str) -> Union[Quizz, None]:
+        query = select(Quizz).where(and_(Quizz.company_id == company_id, Quizz.title == title))
+        result = await self.db.execute(query)
+        return result.scalars().first()
+
     async def get_question(self, question_id: UUID) -> Union[Question, None]:
         return await self._get_item_by_id(question_id, Question)
 
     async def get_answer(self, answer_id: UUID) -> Union[Answer, None]:
         return await self._get_item_by_id(answer_id, Answer)
+
+    async def get_question_by_quizz_and_text(self, quizz_id: UUID, text: str) -> Union[Question, None]:
+        query = select(Question).where(and_(Question.quizz_id == quizz_id, Question.text == text))
+        result = await self.db.execute(query)
+        return result.scalars().first()
+
+    async def get_answer_by_question_and_text(self, question_id: UUID, text: str) -> Union[Answer, None]:
+        query = select(Answer).where(and_(Answer.question_id == question_id, Answer.text == text))
+        result = await self.db.execute(query)
+        return result.scalars().first()
 
     async def get_company_quizzes(self, company_id: UUID, offset: int = 0, limit: int = 10) -> list[Quizz]:
         query = select(Quizz).where(Quizz.company_id == company_id).offset(offset).limit(limit)
@@ -94,6 +109,12 @@ class QuizzRepository(RepositoryBase):
     async def delete_answer_and_commit(self, answer_id: UUID) -> None:
         await self._delete_item_by_id(answer_id, Answer)
         await self.db.commit()
+
+    async def delete_answer(self, answer_id: UUID) -> None:
+        await self._delete_item_by_id(answer_id, Answer)
+
+    async def delete_question(self, question_id: UUID) -> None:
+        await self._delete_item_by_id(question_id, Question)
 
     async def update_quizz(self, quizz: Quizz, new_data: QuizzUpdateSchema) -> Quizz:
         for field in new_data.dict(exclude_unset=True):
