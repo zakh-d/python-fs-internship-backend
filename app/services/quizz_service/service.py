@@ -1,4 +1,5 @@
 import csv
+import datetime
 import io
 from math import floor
 from typing import Annotated
@@ -15,6 +16,7 @@ from app.schemas.quizz_schema import (
     AnswerWithCorrectSchema,
     ChoosenAnswerDisplaySchema,
     ChoosenAnswerSchema,
+    CompletionInfoSchema,
     QuestionCompletionSchema,
     QuestionCreateSchema,
     QuestionResultDisplaySchema,
@@ -26,10 +28,15 @@ from app.schemas.quizz_schema import (
     QuizzCreateSchema,
     QuizzDetailResultSchema,
     QuizzListSchema,
+    QuizzResultAnalyticsListSchema,
     QuizzResultDisplaySchema,
     QuizzResultDisplayWithUserSchema,
     QuizzResultListDisplaySchema,
     QuizzResultSchema,
+    QuizzResultsListForDateSchema,
+    QuizzResultWithQuizzDataSchema,
+    QuizzResultWithTimestampSchema,
+    QuizzResultWithUserSchema,
     QuizzSchema,
     QuizzUpdateSchema,
     QuizzWithCorrectAnswersSchema,
@@ -258,6 +265,95 @@ class QuizzService:
 
     async def get_average_score_by_user(self, user_id: UUID) -> QuizzResultSchema:
         return QuizzResultSchema(score=await self._quizz_repository.get_average_score_by_user(user_id))
+
+    async def get_average_score_for_user_by_quizzes_over_intervals(
+        self, user_id: UUID, interval: datetime.timedelta
+    ) -> list[QuizzResultAnalyticsListSchema]:
+        end_date = datetime.datetime.now()  # noqa: DTZ005
+        total_results = []
+        while True:
+            data = await self._quizz_repository.get_average_score_by_user_grouped_by_quizz_within_dates(
+                user_id, datetime.datetime.min, end_date
+            )
+            if len(data) == 0:
+                break
+            total_results.append(
+                QuizzResultAnalyticsListSchema(
+                    results=[
+                        QuizzResultWithQuizzDataSchema(
+                            quizz_id=result.quizz_id,
+                            score=result.average_score,
+                            quizz_title=result.title,
+                        )
+                        for result in data
+                    ],
+                    date=end_date,
+                )
+            )
+            end_date -= interval
+        return total_results
+
+    async def get_lastest_user_completions(self, user_id: UUID) -> list[CompletionInfoSchema]:
+        completions = await self._quizz_repository.get_lastest_user_completion_across_all_quizzes(user_id)
+        return [
+            CompletionInfoSchema(
+                quizz_id=completion.quizz_id,
+                quizz_title=completion.title,
+                completion_time=completion.lastest_completion,
+            )
+            for completion in completions
+        ]
+
+    async def get_user_quizz_completions(self, user_id: UUID, quizz_id: UUID) -> list[QuizzResultWithTimestampSchema]:
+        complitions = await self._quizz_repository.get_user_quizz_completions(user_id, quizz_id)
+        return [
+            QuizzResultWithTimestampSchema(
+                score=complition.score,
+                completion_time=complition.created_at,
+            )
+            for complition in complitions
+        ]
+
+    async def get_average_scores_for_company_members_over_intervals(
+        self, company_id: UUID, interval: datetime.timedelta
+    ) -> list[QuizzResultsListForDateSchema]:
+        end_date = datetime.datetime.now()  # noqa: DTZ005
+        total_results = []
+        while True:
+            data = await self._quizz_repository.get_average_score_for_company_members_within_dates(
+                company_id, datetime.datetime.min, end_date
+            )
+            if len(data) == 0:
+                break
+            total_results.append(
+                QuizzResultsListForDateSchema(
+                    results=[
+                        QuizzResultWithUserSchema(
+                            score=result.average_score,
+                            user_email=result.email,
+                        )
+                        for result in data
+                    ],
+                    date=end_date,
+                )
+            )
+            end_date -= interval
+        return total_results
+
+    async def get_average_scores_for_quizz_completed_by_user_over_intervals(
+        self, user_id: UUID, quizz_id: UUID, interval: datetime.timedelta
+    ) -> list[QuizzResultWithTimestampSchema]:
+        end_date = datetime.datetime.now()  # noqa: DTZ005
+        total_results = []
+        while True:
+            avg = await self._quizz_repository.get_average_score_for_quizz_by_user(
+                quizz_id=quizz_id, user_id=user_id, start_date=datetime.datetime.min, end_date=end_date
+            )
+            if avg is None:
+                break
+            total_results.append(QuizzResultWithTimestampSchema(score=avg, completion_time=end_date))
+            end_date -= interval
+        return total_results
 
     async def get_average_score_by_quizz(self, quizz_id: UUID) -> QuizzResultSchema:
         return QuizzResultSchema(score=await self._quizz_repository.get_average_score_by_quizz(quizz_id))

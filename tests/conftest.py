@@ -94,8 +94,8 @@ def company_action_repo(get_db) -> CompanyActionRepository:
 
 
 @pytest.fixture
-def company_service(company_repo, company_action_repo) -> CompanyService:
-    return CompanyService(company_repository=company_repo, company_action_repository=company_action_repo)
+def company_service(company_repo, company_action_repo, quizz_repo) -> CompanyService:
+    return CompanyService(company_repository=company_repo, company_action_repository=company_action_repo, quizz_repository=quizz_repo)
 
 
 @pytest.fixture

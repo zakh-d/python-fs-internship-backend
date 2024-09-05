@@ -1,3 +1,4 @@
+import datetime
 from typing import Optional
 from uuid import UUID
 
@@ -166,3 +167,32 @@ class QuizzResultListDisplaySchema(BaseModel):
 
 class QuizzResultSchema(BaseModel):
     score: float
+
+
+class QuizzResultWithUserSchema(QuizzResultSchema):
+    user_email: str
+
+
+class QuizzResultsListForDateSchema(BaseModel):
+    results: list[QuizzResultWithUserSchema]
+    date: datetime.datetime
+
+
+class QuizzResultWithTimestampSchema(QuizzResultSchema):
+    completion_time: datetime.datetime
+
+
+class QuizzResultWithQuizzDataSchema(QuizzResultSchema):
+    quizz_id: UUID
+    quizz_title: str
+
+
+class QuizzResultAnalyticsListSchema(BaseModel):
+    results: list[QuizzResultWithQuizzDataSchema]
+    date: datetime.datetime
+
+
+class CompletionInfoSchema(BaseModel):
+    quizz_id: UUID
+    quizz_title: str
+    completion_time: datetime.datetime

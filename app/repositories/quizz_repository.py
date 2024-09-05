@@ -1,9 +1,11 @@
+import datetime
+from collections.abc import Sequence
 from typing import Literal, Optional, Union
 from uuid import UUID
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, or_, select
 
-from app.db.models import Answer, Question, Quizz, QuizzResult
+from app.db.models import Answer, CompanyAction, Question, Quizz, QuizzResult, User
 from app.redis import get_redis_client
 from app.repositories.repository_base import RepositoryBase
 from app.schemas.quizz_schema import (
@@ -143,6 +145,79 @@ class QuizzRepository(RepositoryBase):
         result = await self.db.execute(query)
         return result.scalar_one()
 
+    async def get_average_score_by_user_grouped_by_quizz_within_dates(
+        self, user_id: UUID, start_date: datetime.datetime, end_date: datetime.datetime
+    ) -> Sequence:
+        query = (
+            select(QuizzResult.quizz_id, func.avg(QuizzResult.score).label('average_score'), Quizz.title)
+            .join(Quizz)
+            .where(
+                and_(
+                    QuizzResult.user_id == user_id,
+                    QuizzResult.created_at >= start_date,
+                    QuizzResult.created_at <= end_date,
+                )
+            )
+            .group_by(QuizzResult.quizz_id, Quizz.title)
+        )
+        result = await self.db.execute(query)
+        return result.all()
+
+    async def get_average_score_for_quizz_by_user(
+        self, quizz_id: UUID, user_id: UUID, start_date: datetime.datetime, end_date: datetime.datetime
+    ) -> Union[float, None]:
+        query = select(func.avg(QuizzResult.score)).where(
+            and_(
+                QuizzResult.quizz_id == quizz_id,
+                QuizzResult.user_id == user_id,
+                QuizzResult.created_at >= start_date,
+                QuizzResult.created_at <= end_date,
+            )
+        )
+        result = await self.db.execute(query)
+        return result.scalar_one()
+
+    async def get_average_score_for_company_members_within_dates(
+        self,
+        company_id: UUID,
+        start_date: datetime.datetime,
+        end_date: datetime.datetime,
+    ) -> Sequence:
+        query = (
+            select(func.avg(QuizzResult.score).label('average_score'), User.email)
+            .join(User)
+            .where(
+                and_(
+                    QuizzResult.company_id == company_id,
+                    QuizzResult.created_at >= start_date,
+                    QuizzResult.created_at <= end_date,
+                )
+            )
+            .group_by(User.email)
+        )
+
+        result = await self.db.execute(query)
+        return result.all()
+
+    async def get_lastest_user_completion_across_all_quizzes(self, user_id: UUID) -> Sequence:
+        query = (
+            select(QuizzResult.quizz_id, Quizz.title, func.max(QuizzResult.created_at).label('lastest_completion'))
+            .join(Quizz)
+            .where(QuizzResult.user_id == user_id)
+            .group_by(QuizzResult.quizz_id, Quizz.title)
+        )
+        result = await self.db.execute(query)
+        return result.all()
+
+    async def get_user_quizz_completions(self, user_id: UUID, quizz_id: UUID) -> Sequence[QuizzResult]:
+        query = (
+            select(QuizzResult)
+            .where(and_(QuizzResult.user_id == user_id, QuizzResult.quizz_id == quizz_id))
+            .order_by(QuizzResult.created_at.desc())
+        )
+        result = await self.db.execute(query)
+        return result.scalars().all()
+
     async def cache_quizz_result(
         self, user_id: UUID, company_id: UUID, quizz_id: UUID, data: QuizzDetailResultSchema
     ) -> None:
@@ -250,3 +325,37 @@ class QuizzRepository(RepositoryBase):
             answer_id='*',
         )
         return await self.get_cached_responses_by_key(lookup_key)
+
+    async def get_company_members_with_lastest_complition_date(self, company_id: UUID) -> Sequence:
+        subquery_company_action = (
+            select(CompanyAction)
+            .where(
+                and_(
+                    CompanyAction.company_id == company_id,
+                    or_(CompanyAction.type == 'MEMBERSHIP', CompanyAction.type == 'ADMIN'),
+                )
+            )
+            .subquery()
+        )
+
+        subquery_quizz_result = select(QuizzResult).where(QuizzResult.company_id == company_id).subquery()
+
+        query = (
+            select(
+                User.id,
+                User.email,
+                User.username,
+                User.created_at,
+                User.updated_at,
+                func.max(subquery_quizz_result.c.created_at).label('lastest_completion'),
+                subquery_company_action.c.type.label('role'),
+            )
+            .join(subquery_company_action, User.id == subquery_company_action.c.user_id)
+            .outerjoin(subquery_quizz_result, subquery_quizz_result.c.user_id == User.id)
+            .group_by(
+                User.id, User.email, User.created_at, User.updated_at, User.username, subquery_company_action.c.type
+            )
+        )
+
+        result = await self.db.execute(query)
+        return result.all()

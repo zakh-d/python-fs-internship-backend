@@ -1,12 +1,17 @@
+import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 
 from app.core.security import get_current_user
 from app.schemas.company_action_schema import CompanyActionSchema
 from app.schemas.company_schema import CompanyListSchema
-from app.schemas.quizz_schema import QuizzResultSchema
+from app.schemas.quizz_schema import (
+    CompletionInfoSchema,
+    QuizzResultAnalyticsListSchema,
+    QuizzResultSchema,
+)
 from app.schemas.user_shema import (
     UserDetail,
     UserList,
@@ -76,7 +81,7 @@ async def sign_in(
 ) -> dict[str, str]:
     user = await auth_service.authenticate(user_sign_in)
     if user is None:
-        raise HTTPException(status_code=401, detail='Invalid credentials')
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid credentials')
     token = auth_service.generate_jwt_token(user)
     return {'access_token': token}
 
@@ -183,3 +188,30 @@ async def get_user_quizz_responses(
         return Response(content=await quiz_service.get_user_responses_from_cache_csv(user_id), media_type='text/csv')
     data = await quiz_service.get_user_responses_from_cache_json(user_id)
     return Response(content=data.model_dump_json(), media_type='text/json')
+
+
+@router.get(
+    '/{user_id}/quizzes/average/by/quizzes/', tags=['quizzes', 'users'], dependencies=[Depends(only_user_itself)]
+)
+async def get_user_average_score_by_quizzes(
+    user_id: UUID,
+    quiz_service: Annotated[QuizzService, Depends()],
+    interval: Literal['days', 'weeks', 'months'] = 'weeks',
+) -> list[QuizzResultAnalyticsListSchema]:
+    if interval == 'days':
+        return await quiz_service.get_average_score_for_user_by_quizzes_over_intervals(
+            user_id, datetime.timedelta(days=1)
+        )
+    if interval == 'weeks':
+        return await quiz_service.get_average_score_for_user_by_quizzes_over_intervals(
+            user_id, datetime.timedelta(weeks=1)
+        )
+    return await quiz_service.get_average_score_for_user_by_quizzes_over_intervals(user_id, datetime.timedelta(weeks=4))
+
+
+@router.get('/{user_id}/quizzes/latest/', tags=['quizzes', 'users'], dependencies=[Depends(only_user_itself)])
+async def get_latest_quizz_completion_by_user(
+    user_id: UUID,
+    quiz_service: Annotated[QuizzService, Depends()],
+) -> list[CompletionInfoSchema]:
+    return await quiz_service.get_lastest_user_completions(user_id)
