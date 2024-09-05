@@ -1,3 +1,5 @@
+import csv
+import io
 from math import floor
 from typing import Annotated
 from uuid import UUID
@@ -5,14 +7,17 @@ from uuid import UUID
 from fastapi import Depends
 
 from app.repositories.quizz_repository import QuizzRepository
+from app.repositories.user_repository import UserRepository
 from app.schemas.quizz_schema import (
     AnswerCreateSchema,
     AnswerSchema,
     AnswerUpdateSchema,
     AnswerWithCorrectSchema,
+    ChoosenAnswerDisplaySchema,
     ChoosenAnswerSchema,
     QuestionCompletionSchema,
     QuestionCreateSchema,
+    QuestionResultDisplaySchema,
     QuestionResultSchema,
     QuestionSchema,
     QuestionUpdateSchema,
@@ -21,19 +26,27 @@ from app.schemas.quizz_schema import (
     QuizzCreateSchema,
     QuizzDetailResultSchema,
     QuizzListSchema,
+    QuizzResultDisplaySchema,
+    QuizzResultDisplayWithUserSchema,
+    QuizzResultListDisplaySchema,
     QuizzResultSchema,
     QuizzSchema,
     QuizzUpdateSchema,
     QuizzWithCorrectAnswersSchema,
     QuizzWithNoQuestionsSchema,
 )
-from app.schemas.user_shema import UserDetail
+from app.schemas.user_shema import UserDetail, UserSchema
 from app.services.quizz_service.exceptions import QuizzError, QuizzNotFound
 
 
 class QuizzService:
-    def __init__(self, quizz_repository: Annotated[QuizzRepository, Depends()]) -> None:
+    def __init__(
+        self,
+        quizz_repository: Annotated[QuizzRepository, Depends()],
+        user_repository: Annotated[UserRepository, Depends()],
+    ) -> None:
         self._quizz_repository = quizz_repository
+        self._user_repository = user_repository
 
     async def create_quizz(self, quizz_data: QuizzCreateSchema, company_id: UUID) -> QuizzSchema:
         async with self._quizz_repository.unit():
@@ -222,7 +235,7 @@ class QuizzService:
     ) -> QuizzResultSchema:
         question_count = await self._quizz_repository.get_quizz_questions_count(data.quizz_id)
         score = 0
-        asssesment = QuizzDetailResultSchema(questions=[])
+        asssesment = QuizzDetailResultSchema(quizz_id=quizz.id, user_id=user.id, questions=[])
         for question in data.questions:
             question_score, question_result = await self.evaluate_question(data.quizz_id, question)
             score += question_score / question_count
@@ -234,6 +247,7 @@ class QuizzService:
             score=floor(score * 100),
         )
         await self._quizz_repository.commit()
+        await self._quizz_repository.delete_cached_quizz_for_user(user.id, data.quizz_id)
         await self._quizz_repository.cache_quizz_result(
             user_id=user.id, company_id=quizz.company_id, quizz_id=data.quizz_id, data=asssesment
         )
@@ -247,3 +261,146 @@ class QuizzService:
 
     async def get_average_score_by_quizz(self, quizz_id: UUID) -> QuizzResultSchema:
         return QuizzResultSchema(score=await self._quizz_repository.get_average_score_by_quizz(quizz_id))
+
+    async def get_quizz_response_displayed(self, response: QuizzDetailResultSchema) -> QuizzResultDisplayWithUserSchema:
+        quizz = await self.get_quizz(response.quizz_id)
+        quizz = await self.fetch_quizz_questions(quizz)
+        quizz_result = await self._quizz_repository.get_latest_quizz_result(response.user_id, response.quizz_id)
+        if not quizz_result:
+            raise QuizzNotFound('Quizz result')
+
+        questions_text_by_ids = {question.id: question.text for question in quizz.questions}
+        answers_text_by_ids = {answer.id: answer.text for question in quizz.questions for answer in question.answers}
+        user = await self._user_repository.get_user_by_id(response.user_id)
+        result_display = QuizzResultDisplayWithUserSchema(score=quizz_result.score, user_email=user.email, questions=[])
+
+        for question in response.questions:
+            question_text = questions_text_by_ids[question.question_id]
+            choosen_answers = []
+            for choosen_answer in question.choosen_answers:
+                answer_text = answers_text_by_ids[choosen_answer.answer_id]
+                choosen_answers.append(
+                    ChoosenAnswerDisplaySchema(text=answer_text, is_correct=choosen_answer.is_correct)
+                )
+            result_display.questions.append(
+                QuestionResultDisplaySchema(text=question_text, choosen_answers=choosen_answers)
+            )
+
+        return result_display
+
+    async def get_cached_user_response_json(self, user_id: UUID, quizz_id: UUID) -> QuizzResultDisplaySchema:
+        result = await self._quizz_repository.get_user_quizz_response_from_cache(user_id, quizz_id)
+        if result is None:
+            raise QuizzNotFound('User response')
+        return await self.get_quizz_response_displayed(result)
+
+    async def get_cached_user_response_csv(self, user_id: UUID, quizz_id: UUID) -> str:
+        response = await self._quizz_repository.get_user_quizz_response_from_cache(user_id, quizz_id)
+        if response is None:
+            raise QuizzNotFound('User response')
+
+        response_displayed = await self.get_quizz_response_displayed(response)
+
+        output = io.StringIO()
+        writter = csv.DictWriter(output, fieldnames=['Question', 'Answer', 'Is Correct'])
+        writter.writeheader()
+        for question in response_displayed.questions:
+            for choosen_answer in question.choosen_answers:
+                writter.writerow(
+                    {
+                        'Question': question.text,
+                        'Answer': choosen_answer.text,
+                        'Is Correct': choosen_answer.is_correct,
+                    }
+                )
+        return output.getvalue()
+
+    async def get_cached_users_responses_json(
+        self, users: list[UserSchema], quizz_id: UUID
+    ) -> QuizzResultListDisplaySchema:
+        list_ = QuizzResultListDisplaySchema(responses=[])
+        for user in users:
+            try:
+                response = await self.get_cached_user_response_json(user.id, quizz_id)
+                list_.responses.append(
+                    QuizzResultDisplayWithUserSchema(
+                        score=response.score, questions=response.questions, user_email=user.email
+                    )
+                )
+            except QuizzNotFound:
+                continue
+        return list_
+
+    async def get_cached_users_responses_csv(self, users: list[UserSchema], quizz_id: UUID) -> str:
+        output = io.StringIO()
+        writter = csv.DictWriter(output, fieldnames=['User', 'Question', 'Answer', 'Is Correct'])
+        writter.writeheader()
+        for user in users:
+            try:
+                response = await self.get_cached_user_response_json(user.id, quizz_id)
+                for question in response.questions:
+                    for choosen_answer in question.choosen_answers:
+                        writter.writerow(
+                            {
+                                'User': user.email,
+                                'Question': question.text,
+                                'Answer': choosen_answer.text,
+                                'Is Correct': choosen_answer.is_correct,
+                            }
+                        )
+            except QuizzNotFound:
+                continue
+        return output.getvalue()
+
+    async def _user_responses_to_displayed_json(
+        self, responses: list[QuizzDetailResultSchema]
+    ) -> QuizzResultListDisplaySchema:
+        list_ = QuizzResultListDisplaySchema(responses=[])
+        for response in responses:
+            list_.responses.append(await self.get_quizz_response_displayed(response))
+        return list_
+
+    async def get_user_responses_from_cache_json(self, user_id: UUID) -> QuizzResultListDisplaySchema:
+        responses = await self._quizz_repository.get_user_cached_responses(user_id)
+        return await self._user_responses_to_displayed_json(responses)
+
+    async def get_user_responses_in_company_from_cache_json(
+        self, user_id: UUID, company_id: UUID
+    ) -> QuizzResultListDisplaySchema:
+        responses = await self._quizz_repository.get_user_cached_responses_in_company(user_id, company_id)
+        return await self._user_responses_to_displayed_json(responses)
+
+    async def _user_responses_to_displayed_csv(self, responses: list[QuizzDetailResultSchema]) -> str:
+        output = io.StringIO()
+        writter = csv.DictWriter(output, fieldnames=['Quizz', 'User', 'Question', 'Answer', 'Is Correct'])
+        writter.writeheader()
+        for response in responses:
+            response_displayed = await self.get_quizz_response_displayed(response)
+            for question in response_displayed.questions:
+                for choosen_answer in question.choosen_answers:
+                    writter.writerow(
+                        {
+                            'Quizz': (await self._quizz_repository.get_quizz(response.quizz_id)).title,
+                            'User': response_displayed.user_email,
+                            'Question': question.text,
+                            'Answer': choosen_answer.text,
+                            'Is Correct': choosen_answer.is_correct,
+                        }
+                    )
+        return output.getvalue()
+
+    async def get_user_responses_from_cache_csv(self, user_id: UUID) -> str:
+        responses = await self._quizz_repository.get_user_cached_responses(user_id)
+        return await self._user_responses_to_displayed_csv(responses)
+
+    async def get_user_responses_in_company_from_cache_csv(self, user_id: UUID, company_id: UUID) -> str:
+        responses = await self._quizz_repository.get_user_cached_responses_in_company(user_id, company_id)
+        return await self._user_responses_to_displayed_csv(responses)
+
+    async def get_company_members_responses_from_cache_json(self, company_id: UUID) -> QuizzResultListDisplaySchema:
+        responses = await self._quizz_repository.get_company_members_responses(company_id)
+        return await self._user_responses_to_displayed_json(responses)
+
+    async def get_company_members_responses_from_cache_csv(self, company_id: UUID) -> str:
+        responses = await self._quizz_repository.get_company_members_responses(company_id)
+        return await self._user_responses_to_displayed_csv(responses)

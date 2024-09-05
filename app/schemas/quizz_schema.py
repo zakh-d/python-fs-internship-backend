@@ -136,7 +136,32 @@ class QuestionResultSchema(BaseModel):
 
 
 class QuizzDetailResultSchema(BaseModel):
+    quizz_id: UUID
+    user_id: UUID
     questions: list[QuestionResultSchema]
+
+
+class ChoosenAnswerDisplaySchema(BaseModel):
+    text: str
+    is_correct: bool
+
+
+class QuestionResultDisplaySchema(BaseModel):
+    text: str
+    choosen_answers: list[ChoosenAnswerDisplaySchema]
+
+
+class QuizzResultDisplaySchema(BaseModel):
+    score: float
+    questions: list[QuestionResultDisplaySchema]
+
+
+class QuizzResultDisplayWithUserSchema(QuizzResultDisplaySchema):
+    user_email: str
+
+
+class QuizzResultListDisplaySchema(BaseModel):
+    responses: list[QuizzResultDisplayWithUserSchema]
 
 
 class QuizzResultSchema(BaseModel):

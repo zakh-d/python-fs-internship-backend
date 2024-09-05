@@ -1,17 +1,21 @@
-from typing import Optional, Union
+from typing import Literal, Optional, Union
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 
 from app.db.models import Answer, Question, Quizz, QuizzResult
 from app.redis import get_redis_client
 from app.repositories.repository_base import RepositoryBase
 from app.schemas.quizz_schema import (
     AnswerUpdateSchema,
+    ChoosenAnswerSchema,
+    QuestionResultSchema,
     QuestionUpdateSchema,
     QuizzDetailResultSchema,
     QuizzUpdateSchema,
 )
+
+ID_OR_MATCH_ALL = Union[UUID, Literal['*']]
 
 
 class QuizzRepository(RepositoryBase):
@@ -115,6 +119,15 @@ class QuizzRepository(RepositoryBase):
         await self.db.refresh(quizz_result)
         return quizz_result
 
+    async def get_latest_quizz_result(self, user_id: UUID, quizz_id: UUID) -> Union[QuizzResult, None]:
+        query = (
+            select(QuizzResult)
+            .where(and_(QuizzResult.user_id == user_id, QuizzResult.quizz_id == quizz_id))
+            .order_by(QuizzResult.created_at.desc())
+        )
+        result = await self.db.execute(query)
+        return result.scalars().first()
+
     async def get_average_score_by_company(self, company_id: UUID) -> float:
         query = select(func.avg(QuizzResult.score)).where(QuizzResult.company_id == company_id)
         result = await self.db.execute(query)
@@ -138,8 +151,102 @@ class QuizzRepository(RepositoryBase):
         async with redis.pipeline(transaction=True) as pipe:
             for question in data.questions:
                 for answer in question.choosen_answers:
-                    key = f'answer:{user_id}:{company_id}:{quizz_id}:{question.question_id}:{answer.answer_id}'
+                    key = self._create_key(user_id, company_id, quizz_id, question.question_id, answer.answer_id)
                     pipe.set(key, 1 if answer.is_correct else 0, ex=_48_hours)
-                    
+
             await pipe.execute()
         await redis.close()
+
+    async def delete_cached_quizz_for_user(self, user_id: UUID, quizz_id: UUID) -> None:
+        redis = await get_redis_client()
+        lookup_key = self._create_key(
+            user_id=user_id, company_id='*', quizz_id=quizz_id, question_id='*', answer_id='*'
+        )
+        keys = await redis.keys(lookup_key)
+        if len(keys) > 0:
+            await redis.delete(*keys)
+        await redis.close()
+
+    def _parse_key(self, key: str) -> tuple[UUID, UUID, UUID, UUID, UUID]:
+        _, user_id, company_id, quizz_id, question_id, answer_id = key.split(':')
+        return UUID(user_id), UUID(company_id), UUID(quizz_id), UUID(question_id), UUID(answer_id)
+
+    def _create_key(
+        self,
+        user_id: ID_OR_MATCH_ALL,
+        company_id: ID_OR_MATCH_ALL,
+        quizz_id: ID_OR_MATCH_ALL,
+        question_id: ID_OR_MATCH_ALL,
+        answer_id: ID_OR_MATCH_ALL,
+    ) -> str:
+        return f'answer:{user_id}:{company_id}:{quizz_id}:{question_id}:{answer_id}'
+
+    async def get_cached_responses_by_key(self, lookup_key: str) -> list[QuizzDetailResultSchema]:
+        redis = await get_redis_client()
+        keys = await redis.keys(lookup_key)
+        responses = await redis.mget(keys)
+        keys = [key.decode() for key in keys]
+        used_quizzes = {}
+        used_questions_in_quizz = {}
+        list_of_responses: list[QuizzDetailResultSchema] = []
+        for key, response in zip(keys, responses):
+            user_id, company_id, quizz_id, question_id, answer_id = self._parse_key(key)
+            if quizz_id not in used_quizzes:
+                used_quizzes[quizz_id] = len(list_of_responses)
+                list_of_responses.append(QuizzDetailResultSchema(user_id=user_id, quizz_id=quizz_id, questions=[]))
+            question_key = str(user_id) + str(question_id)
+            if question_key not in used_questions_in_quizz:
+                used_questions_in_quizz[question_key] = len(list_of_responses[used_quizzes[quizz_id]].questions)
+                list_of_responses[used_quizzes[quizz_id]].questions.append(
+                    QuestionResultSchema(question_id=question_id, choosen_answers=[])
+                )
+            list_of_responses[used_quizzes[quizz_id]].questions[
+                used_questions_in_quizz[question_key]
+            ].choosen_answers.append(ChoosenAnswerSchema(answer_id=answer_id, is_correct=response == b'1'))
+        await redis.close()
+        return list_of_responses
+
+    async def get_user_quizz_response_from_cache(
+        self, user_id: UUID, quizz_id: UUID
+    ) -> Union[QuizzDetailResultSchema, None]:
+        lookup_key = self._create_key(
+            user_id=user_id,
+            company_id='*',
+            quizz_id=quizz_id,
+            question_id='*',
+            answer_id='*',
+        )
+        results = await self.get_cached_responses_by_key(lookup_key)
+        return results[0] if results else None
+
+    async def get_user_cached_responses(self, user_id: UUID) -> list[QuizzDetailResultSchema]:
+        lookup_key = self._create_key(
+            user_id=user_id,
+            company_id='*',
+            quizz_id='*',
+            question_id='*',
+            answer_id='*',
+        )
+        return await self.get_cached_responses_by_key(lookup_key)
+
+    async def get_user_cached_responses_in_company(
+        self, user_id: UUID, copmany_id: UUID
+    ) -> list[QuizzDetailResultSchema]:
+        lookup_key = self._create_key(
+            user_id=user_id,
+            company_id=copmany_id,
+            quizz_id='*',
+            question_id='*',
+            answer_id='*',
+        )
+        return await self.get_cached_responses_by_key(lookup_key)
+
+    async def get_company_members_responses(self, company_id: UUID) -> list[QuizzDetailResultSchema]:
+        lookup_key = self._create_key(
+            user_id='*',
+            company_id=company_id,
+            quizz_id='*',
+            question_id='*',
+            answer_id='*',
+        )
+        return await self.get_cached_responses_by_key(lookup_key)

@@ -1,7 +1,7 @@
 from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 
 from app.core.security import get_current_user
 from app.schemas.company_action_schema import CompanyActionSchema
@@ -217,3 +217,40 @@ async def get_company_quizzes_average(
 ) -> QuizzResultSchema:
     await company_service.check_is_member(company_id, current_user.id)
     return await quizz_service.get_average_score_by_company(company_id)
+
+
+@router.get('/{company_id}/quizzes/responses/{user_id}/', tags=['quizzes', 'companies'])
+async def get_user_responses_for_company_quizzes(
+    company_id: UUID,
+    user_id: UUID,
+    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends()],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+    format: Literal['json', 'csv'] = 'json',
+) -> Response:
+    await company_service.check_is_member(company_id, current_user.id)
+    if format == 'csv':
+        return Response(
+            content=await quizz_service.get_user_responses_in_company_from_cache_csv(user_id, company_id),
+            media_type='text/csv',
+        )
+    data = await quizz_service.get_user_responses_in_company_from_cache_json(user_id, company_id)
+    return Response(content=data.model_dump_json(), media_type='text/json')
+
+
+@router.get('/{company_id}/quizzes/responses/', tags=['quizzes', 'companies'])
+async def get_all_members_responses_for_company_quizzes(
+    company_id: UUID,
+    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends()],
+    current_user: Annotated[UserDetail, Depends(get_current_user)],
+    format: Literal['json', 'csv'] = 'json',
+) -> Response:
+    await company_service.check_owner_or_admin(company_id, current_user.id)
+    if format == 'csv':
+        return Response(
+            content=await quizz_service.get_company_members_responses_from_cache_csv(company_id),
+            media_type='text/csv',
+        )
+    data = await quizz_service.get_company_members_responses_from_cache_json(company_id)
+    return Response(content=data.model_dump_json(), media_type='text/json')
