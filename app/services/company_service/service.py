@@ -116,14 +116,16 @@ class CompanyService:
 
     async def get_company_by_id(self, company_id: UUID, current_user: UserDetail) -> CompanyDetailWithIsMemberSchema:
         company = await self._company_repository.get_company_by_id(company_id)
-        if not company:
-            raise CompanyNotFoundException(company_id)
-        if company.hidden and company.owner_id != current_user.id:
-            raise CompanyNotFoundException(company_id)
-        company.owner = await company.awaitable_attrs.owner
         membership = await self._company_action_repository.get_by_company_and_user(
             company_id=company_id, user_id=current_user.id
         )
+        if not company:
+            raise CompanyNotFoundException(company_id)
+        if company.hidden and company.owner_id != current_user.id and membership is None:
+            raise CompanyNotFoundException(company_id)
+        if company.hidden and membership.type not in [CompanyActionType.MEMBERSHIP, CompanyActionType.ADMIN]:
+            raise CompanyNotFoundException(company_id)
+        company.owner = await company.awaitable_attrs.owner
         status = 'yes'
         if membership is None:
             status = 'no'
@@ -267,9 +269,10 @@ class CompanyService:
         await self._company_action_repository.delete(company_id, user_id, CompanyActionType.INVITATION)
 
     async def remove_member(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> None:
-        company = await self._company_exists_and_user_has_permission(
-            company_id, current_user, self._user_has_edit_permission
-        )
+        company = await self.check_company_exists(company_id)
+        if current_user.id != user_id and not self._user_has_edit_permission(company, current_user):
+            raise CompanyPermissionException()
+            
         if company.owner_id == user_id:
             raise CompanyActionException('Owner cannot be removed from company')
         await self._company_action_repository.delete(company_id, user_id, CompanyActionType.MEMBERSHIP)
@@ -312,3 +315,11 @@ class CompanyService:
             raise ActionNotFound(CompanyActionType.ADMIN)
         membership = await self._company_action_repository.update(admin_role, CompanyActionType.MEMBERSHIP)
         return membership
+
+    async def get_companies_user_is_part_of(self, user_id: UUID) -> CompanyListSchema:
+        companies = await self._company_action_repository.get_companies_user_is_part_of(user_id)
+        for company in companies:
+            company.owner = await company.awaitable_attrs.owner
+        return CompanyListSchema(
+            companies=[CompanySchema.model_validate(company) for company in companies], total_count=len(companies)
+        )
