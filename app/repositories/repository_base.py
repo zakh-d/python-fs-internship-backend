@@ -1,19 +1,16 @@
 import contextlib
 from collections.abc import AsyncGenerator
-from typing import Annotated, TypeVar, Union
+from typing import TypeVar, Union
 from uuid import UUID
 
-from fastapi import Depends
 from sqlalchemy import ColumnElement, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.db import get_db
 
 T = TypeVar('T')
 
 
 class RepositoryBase:
-    def __init__(self, db: Annotated[AsyncSession, Depends(get_db)]):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
     async def _get_all_items(self, offset: int, limit: int, table: T) -> list[T]:

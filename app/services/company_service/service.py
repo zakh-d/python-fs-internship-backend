@@ -1,7 +1,7 @@
-from typing import Annotated, Callable, Literal
+from typing import Callable, Literal
 from uuid import UUID
 
-from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import Company, CompanyActionType
 from app.repositories.company_action_repository import CompanyActionRepository
@@ -28,17 +28,11 @@ from .exceptions import (
 
 
 class CompanyService:
-    def __init__(
-        self,
-        company_repository: Annotated[CompanyRepository, Depends()],
-        company_action_repository: Annotated[CompanyActionRepository, Depends()],
-        quizz_repository: Annotated[QuizzRepository, Depends()],
-        notification_service: Annotated[NotificationService, Depends()],
-    ):
-        self._company_repository = company_repository
-        self._company_action_repository = company_action_repository
-        self._quizz_repository = quizz_repository
-        self._notification_service = notification_service
+    def __init__(self, session: AsyncSession):
+        self._company_repository = CompanyRepository(session)
+        self._company_action_repository = CompanyActionRepository(session)
+        self._quizz_repository = QuizzRepository(session)
+        self._notification_service = NotificationService(session)
 
     def _user_has_edit_permission(self, company: Company, current_user: UserDetail) -> bool:
         # possible place for future is_admin check
@@ -272,7 +266,7 @@ class CompanyService:
         company = await self.check_company_exists(company_id)
         if current_user.id != user_id and not self._user_has_edit_permission(company, current_user):
             raise CompanyPermissionException()
-            
+
         if company.owner_id == user_id:
             raise CompanyActionException('Owner cannot be removed from company')
         await self._company_action_repository.delete(company_id, user_id, CompanyActionType.MEMBERSHIP)

@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Response
 
+from app.core.dependencies import get_company_service, get_quizz_service
 from app.core.security import get_current_user
 from app.schemas.quizz_schema import (
     AnswerCreateSchema,
@@ -28,8 +29,8 @@ router = APIRouter()
 @router.post('/')
 async def create_quizz(
     quizz_data: QuizzCreateSchema,
-    company_service: Annotated[CompanyService, Depends()],
-    quizz_service: Annotated[QuizzService, Depends()],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
 ) -> QuizzSchema:
     await company_service.check_owner_or_admin(quizz_data.company_id, current_user.id)
@@ -39,8 +40,8 @@ async def create_quizz(
 @router.get('/{quizz_id}/')
 async def get_quizz(
     quizz_id: UUID,
-    quizz_service: Annotated[QuizzService, Depends()],
-    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
 ) -> QuizzSchema:
     quizz_no_questions = await quizz_service.get_quizz(quizz_id)
@@ -53,8 +54,8 @@ async def get_quizz(
 async def update_quizz(
     quizz_id: UUID,
     quizz_data: QuizzUpdateSchema,
-    quizz_service: Annotated[QuizzService, Depends()],
-    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
 ) -> QuizzWithNoQuestionsSchema:
     quizz = await quizz_service.get_quizz(quizz_id)
@@ -65,8 +66,8 @@ async def update_quizz(
 @router.get('/{quizz_id}/correct/')
 async def get_quizz_with_correct_answers(
     quizz_id: UUID,
-    quizz_service: Annotated[QuizzService, Depends()],
-    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
 ) -> QuizzWithCorrectAnswersSchema:
     quizz_no_questions = await quizz_service.get_quizz(quizz_id)
@@ -78,8 +79,8 @@ async def get_quizz_with_correct_answers(
 @router.delete('/{quizz_id}/')
 async def delete_quizz(
     quizz_id: UUID,
-    quizz_service: Annotated[QuizzService, Depends()],
-    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
 ) -> None:
     quizz = await quizz_service.get_quizz(quizz_id)
@@ -91,8 +92,8 @@ async def delete_quizz(
 async def delete_question(
     quizz_id: UUID,
     question_id: UUID,
-    quizz_service: Annotated[QuizzService, Depends()],
-    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
 ) -> QuizzWithCorrectAnswersSchema:
     quizz = await quizz_service.get_quizz(quizz_id)
@@ -106,8 +107,8 @@ async def update_question(
     quizz_id: UUID,
     question_id: UUID,
     question_data: QuestionUpdateSchema,
-    quizz_service: Annotated[QuizzService, Depends()],
-    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
 ) -> QuizzWithCorrectAnswersSchema:
     quizz = await quizz_service.get_quizz(quizz_id)
@@ -120,8 +121,8 @@ async def update_question(
 async def add_question_to_quizz(
     quizz_id: UUID,
     question_data: QuestionCreateSchema,
-    quizz_service: Annotated[QuizzService, Depends()],
-    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
 ) -> QuizzWithCorrectAnswersSchema:
     quizz = await quizz_service.get_quizz(quizz_id)
@@ -135,8 +136,8 @@ async def add_answer_to_question(
     quizz_id: UUID,
     question_id: UUID,
     answer_data: AnswerCreateSchema,
-    quizz_service: Annotated[QuizzService, Depends()],
-    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
 ) -> QuizzWithCorrectAnswersSchema:
     quizz = await quizz_service.get_quizz(quizz_id)
@@ -149,8 +150,8 @@ async def add_answer_to_question(
 async def delete_answer(
     quizz_id: UUID,
     answer_id: UUID,
-    quizz_service: Annotated[QuizzService, Depends()],
-    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
 ) -> QuizzWithCorrectAnswersSchema:
     quizz = await quizz_service.get_quizz(quizz_id)
@@ -164,8 +165,8 @@ async def update_answer(
     quizz_id: UUID,
     answer_id: UUID,
     answer_data: AnswerCreateSchema,
-    quizz_service: Annotated[QuizzService, Depends()],
-    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
 ) -> QuizzWithCorrectAnswersSchema:
     quizz = await quizz_service.get_quizz(quizz_id)
@@ -177,8 +178,8 @@ async def update_answer(
 @router.post('/complete/')
 async def complete_quizz(
     quizz_completion_data: QuizzCompletionSchema,
-    quizz_service: Annotated[QuizzService, Depends()],
-    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
 ) -> QuizzResultSchema:
     quizz = await quizz_service.get_quizz(quizz_completion_data.quizz_id)
@@ -189,8 +190,8 @@ async def complete_quizz(
 @router.get('/{quizz_id}/average/')
 async def get_quizz_average_score(
     quizz_id: UUID,
-    quizz_service: Annotated[QuizzService, Depends()],
-    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
 ) -> QuizzResultSchema:
     quizz = await quizz_service.get_quizz(quizz_id)
@@ -201,7 +202,7 @@ async def get_quizz_average_score(
 @router.get('/{quizz_id}/responses/my/')
 async def get_my_quizz_response(
     quizz_id: UUID,
-    quizz_service: Annotated[QuizzService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
     format: Literal['json', 'csv'] = 'json',
 ) -> Response:
@@ -217,8 +218,8 @@ async def get_my_quizz_response(
 async def get_user_quizz_response(
     quizz_id: UUID,
     user_id: UUID,
-    quizz_service: Annotated[QuizzService, Depends()],
-    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
     format: Literal['json', 'csv'] = 'json',
 ) -> Response:
@@ -237,8 +238,8 @@ async def get_user_quizz_response(
 @router.get('/{quizz_id}/responses/')
 async def get_quizz_responses(
     quizz_id: UUID,
-    quizz_service: Annotated[QuizzService, Depends()],
-    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
     format: Literal['json', 'csv'] = 'json',
 ) -> Response:
@@ -258,8 +259,8 @@ async def get_quizz_responses(
 async def get_user_completions_for_quizz(
     quizz_id: UUID,
     user_id: UUID,
-    quizz_service: Annotated[QuizzService, Depends()],
-    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
 ) -> list[QuizzResultWithTimestampSchema]:
     quizz = await quizz_service.get_quizz(quizz_id)
@@ -273,8 +274,8 @@ async def get_user_completions_for_quizz(
 async def get_average_user_score_for_quizz_over_time(
     quizz_id: UUID,
     user_id: UUID,
-    quizz_service: Annotated[QuizzService, Depends()],
-    company_service: Annotated[CompanyService, Depends()],
+    quizz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
     current_user: Annotated[UserDetail, Depends(get_current_user)],
     interval: Literal['days', 'weeks', 'months'] = 'weeks',
 ) -> list[QuizzResultWithTimestampSchema]:

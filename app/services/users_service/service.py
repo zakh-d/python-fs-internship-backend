@@ -1,9 +1,8 @@
-from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends
 from passlib.hash import argon2
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import CompanyActionType
 from app.repositories import CompanyActionRepository, UserRepository
@@ -22,15 +21,10 @@ from app.utils.logging import logger
 
 
 class UserService:
-    def __init__(
-        self,
-        user_repository: Annotated[UserRepository, Depends(UserRepository)],
-        company_action_repository: Annotated[CompanyActionRepository, Depends(CompanyActionRepository)],
-        notification_service: Annotated[NotificationService, Depends()],
-    ):
-        self._user_repository = user_repository
-        self._company_action_repository = company_action_repository
-        self._notification_service = notification_service
+    def __init__(self, session: AsyncSession):
+        self._user_repository = UserRepository(session)
+        self._company_action_repository = CompanyActionRepository(session)
+        self._notification_service = NotificationService(session)
 
     async def get_all_users(self, page: int, limit: int) -> UserList:
         offset = (page - 1) * limit

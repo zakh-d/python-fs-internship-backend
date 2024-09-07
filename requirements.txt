@@ -11,3 +11,4 @@ passlib==1.7.4
 argon2-cffi==23.1.0
 argon2-cffi-bindings==21.2.0
 pyjwt==2.8.0
+APScheduler==3.*

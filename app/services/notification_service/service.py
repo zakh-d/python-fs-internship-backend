@@ -1,7 +1,6 @@
-from typing import Annotated
 from uuid import UUID
 
-from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.models import CompanyActionType
 from app.repositories.company_action_repository import CompanyActionRepository
@@ -12,15 +11,10 @@ from app.services.notification_service.exceptions import CannotSendNotificationE
 
 
 class NotificationService:
-    def __init__(
-        self,
-        notification_repository: Annotated[NotificationRepository, Depends()],
-        company_repository: Annotated[CompanyRepository, Depends()],
-        company_action_repository: Annotated[CompanyActionRepository, Depends()],
-    ) -> None:
-        self._notification_repository = notification_repository
-        self._company_respository = company_repository
-        self._company_action_respository = company_action_repository
+    def __init__(self, session: AsyncSession) -> None:
+        self._notification_repository = NotificationRepository(session)
+        self._company_respository = CompanyRepository(session)
+        self._company_action_respository = CompanyActionRepository(session)
 
     async def get_user_notifications(self, user_id: UUID, limit: int = 50, offset: int = 0) -> list[NotificationSchema]:
         notifications = await self._notification_repository.get_user_notifications(user_id, limit, offset)

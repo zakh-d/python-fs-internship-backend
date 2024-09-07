@@ -48,8 +48,8 @@ def user_repo(get_db):
 
 
 @pytest.fixture
-def user_service(user_repo, company_action_repo, notification_service):
-    return UserService(user_repo, company_action_repo, notification_service)
+def user_service(get_db):
+    return UserService(get_db)
 
 
 @pytest.fixture
@@ -73,8 +73,8 @@ async def test_user(user_repo: UserRepository) -> UserSchema:
 
 
 @pytest.fixture
-def auth_service(user_repo: UserRepository) -> AuthenticationService:
-    return AuthenticationService(user_repo)
+def auth_service(get_db) -> AuthenticationService:
+    return AuthenticationService(get_db)
 
 
 @pytest.fixture
@@ -98,18 +98,13 @@ def notification_repo(get_db):
 
 
 @pytest.fixture
-def notification_service(notification_repo, company_repo, company_action_repo):
-    return NotificationService(notification_repo, company_repo, company_action_repo)
+def notification_service(get_db):
+    return NotificationService(get_db)
 
 
 @pytest.fixture
-def company_service(company_repo, company_action_repo, quizz_repo, notification_service) -> CompanyService:
-    return CompanyService(
-        company_repository=company_repo,
-        company_action_repository=company_action_repo,
-        quizz_repository=quizz_repo,
-        notification_service=notification_service,
-    )
+def company_service(get_db) -> CompanyService:
+    return CompanyService(get_db)
 
 
 @pytest.fixture
@@ -140,8 +135,8 @@ def quizz_repo(get_db):
 
 
 @pytest.fixture
-def quizz_service(quizz_repo, company_repo, notification_service, user_repo):
-    return QuizzService(quizz_repository=quizz_repo, user_repository=user_repo, company_repository=company_repo, notification_service=notification_service)
+def quizz_service(get_db):
+    return QuizzService(get_db)
 
 
 @pytest.fixture

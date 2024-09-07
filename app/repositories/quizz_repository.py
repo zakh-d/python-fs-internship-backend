@@ -4,8 +4,10 @@ from typing import Literal, Optional, Union
 from uuid import UUID
 
 from sqlalchemy import and_, func, or_, select
+from sqlalchemy.dialects.postgresql import INTERVAL
+from sqlalchemy.sql.functions import concat
 
-from app.db.models import Answer, CompanyAction, Question, Quizz, QuizzResult, User
+from app.db.models import Answer, Company, CompanyAction, Question, Quizz, QuizzResult, User
 from app.redis import get_redis_client
 from app.repositories.repository_base import RepositoryBase
 from app.schemas.quizz_schema import (
@@ -364,3 +366,38 @@ class QuizzRepository(RepositoryBase):
 
         result = await self.db.execute(query)
         return result.all()
+
+    async def get_users_overdued_quizzes(self, user_id: UUID) -> Sequence:
+        user_companies = (
+            select(Company.id)
+            .join(CompanyAction, Company.id == CompanyAction.company_id)
+            .where(
+                and_(
+                    CompanyAction.user_id == user_id,
+                    or_(CompanyAction.type == 'MEMBERSHIP', CompanyAction.type == 'ADMIN'),
+                )
+            )
+            .subquery()
+        )
+
+        not_overdued_quizzes = (
+            select(Quizz.id)
+            .join(QuizzResult)
+            .where(
+                and_(
+                    func.now() - QuizzResult.created_at < func.cast(concat(Quizz.frequency, ' days'), INTERVAL),
+                    QuizzResult.user_id == user_id,
+                )
+            )
+        )
+
+        overdued_quizzes = select(Quizz).where(
+            and_(
+                Quizz.company_id.in_(user_companies),
+                Quizz.id.not_in(not_overdued_quizzes),
+            )
+        )
+
+        result = await self.db.execute(overdued_quizzes)
+
+        return result.scalars().all()

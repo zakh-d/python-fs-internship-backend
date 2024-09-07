@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 
+from app.core.dependencies import get_authentication_service, get_company_service, get_quizz_service, get_user_service
 from app.core.security import get_current_user
 from app.schemas.company_action_schema import CompanyActionSchema
 from app.schemas.company_schema import CompanyListSchema
@@ -32,7 +33,7 @@ router = APIRouter()
 
 @router.get('/', response_model=UserList, dependencies=[Depends(get_current_user)])
 async def read_users(
-    user_service: Annotated[UserService, Depends(UserService)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
     page: int = 1,
     limit: int = 10,
 ) -> UserList:
@@ -41,14 +42,14 @@ async def read_users(
 
 @router.post('/', response_model=UserSchema)
 async def user_sign_up(
-    user: UserSignUpSchema, user_service: Annotated[UserService, Depends(UserService)]
+    user: UserSignUpSchema, user_service: Annotated[UserService, Depends(get_user_service)]
 ) -> UserSchema:
     return await user_service.create_user(user)
 
 
 @router.get('/me/', response_model=UserDetail)
 async def read_me(
-    user_service: Annotated[UserService, Depends(UserService)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
     current_user: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
 ) -> UserDetail:
     return await user_service.get_user_by_id(current_user.id)
@@ -57,7 +58,7 @@ async def read_me(
 @router.get('/{user_id}/', response_model=UserDetail)
 async def read_user(
     user_id: UUID,
-    user_service: Annotated[UserService, Depends(UserService)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
     _: Annotated[UserSchema, Depends(get_current_user)],  # requires authentication
 ) -> UserDetail:
     return await user_service.get_user_by_id(user_id)
@@ -65,19 +66,19 @@ async def read_user(
 
 @router.put('/{user_id}/', response_model=UserDetail, dependencies=[Depends(only_user_itself)])
 async def update_user(
-    user_id: UUID, user: UserUpdateSchema, user_service: Annotated[UserService, Depends(UserService)]
+    user_id: UUID, user: UserUpdateSchema, user_service: Annotated[UserService, Depends(get_user_service)]
 ) -> UserDetail:
     return await user_service.update_user(user_id, user)
 
 
 @router.delete('/{user_id}/', dependencies=[Depends(only_user_itself)])
-async def delete_user(user_id: UUID, user_service: Annotated[UserService, Depends(UserService)]) -> None:
+async def delete_user(user_id: UUID, user_service: Annotated[UserService, Depends(get_user_service)]) -> None:
     await user_service.delete_user(user_id)
 
 
 @router.post('/sign_in/')
 async def sign_in(
-    user_sign_in: UserSignInSchema, auth_service: Annotated[AuthenticationService, Depends(AuthenticationService)]
+    user_sign_in: UserSignInSchema, auth_service: Annotated[AuthenticationService, Depends(get_authentication_service)]
 ) -> dict[str, str]:
     user = await auth_service.authenticate(user_sign_in)
     if user is None:
@@ -89,7 +90,7 @@ async def sign_in(
 @router.get('/{user_id}/invites/', dependencies=[Depends(only_user_itself)])
 async def get_invites_for_user(
     user_id: UUID,
-    user_service: Annotated[UserService, Depends(UserService)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> CompanyListSchema:
     return await user_service.get_user_invites(user_id)
 
@@ -98,8 +99,8 @@ async def get_invites_for_user(
 async def accept_invite_to_company(
     user_id: UUID,
     company_id: UUID,
-    user_service: Annotated[UserService, Depends(UserService)],
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
 ) -> None:
     await company_service.check_company_exists(company_id)
     await user_service.accept_invitation(user_id, company_id)
@@ -109,8 +110,8 @@ async def accept_invite_to_company(
 async def reject_invite_to_company(
     user_id: UUID,
     company_id: UUID,
-    user_service: Annotated[UserService, Depends(UserService)],
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
 ) -> None:
     await company_service.check_company_exists(company_id)
     await user_service.reject_invitation(user_id, company_id)
@@ -119,7 +120,7 @@ async def reject_invite_to_company(
 @router.get('/{user_id}/requests/', dependencies=[Depends(only_user_itself)])
 async def get_user_requests(
     user_id: UUID,
-    user_service: Annotated[UserService, Depends(UserService)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> CompanyListSchema:
     return await user_service.get_user_requests(user_id)
 
@@ -128,8 +129,8 @@ async def get_user_requests(
 async def request_to_join_company(
     user_id: UUID,
     company_id: UUID,
-    user_service: Annotated[UserService, Depends(UserService)],
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
 ) -> CompanyActionSchema:
     await company_service.check_company_exists_and_is_public(company_id)
     request = await user_service.send_request(user_id, company_id)
@@ -140,8 +141,8 @@ async def request_to_join_company(
 async def cancel_request_to_join_company(
     user_id: UUID,
     company_id: UUID,
-    user_service: Annotated[UserService, Depends(UserService)],
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
 ) -> None:
     await company_service.check_company_exists(company_id)
     await user_service.cancel_request(user_id, company_id)
@@ -150,7 +151,7 @@ async def cancel_request_to_join_company(
 @router.get('/{user_id}/companies/', dependencies=[Depends(only_user_itself)])
 async def get_user_companies(
     user_id: UUID,
-    user_service: Annotated[UserService, Depends(UserService)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> CompanyListSchema:
     return await user_service.get_user_companies(user_id)
 
@@ -159,8 +160,8 @@ async def get_user_companies(
 async def leave_company(
     user_id: UUID,
     company_id: UUID,
-    user_service: Annotated[UserService, Depends(UserService)],
-    company_service: Annotated[CompanyService, Depends(CompanyService)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    company_service: Annotated[CompanyService, Depends(get_company_service)],
 ) -> CompanyListSchema:
     company = await company_service.check_company_exists(company_id)
     if company.owner_id == user_id:
@@ -171,8 +172,8 @@ async def leave_company(
 @router.get('/{user_id}/quizzes/average/', tags=['quizzes', 'users'])
 async def get_user_quizzes_average_score(
     user_id: UUID,
-    quiz_service: Annotated[QuizzService, Depends()],
-    user_service: Annotated[UserService, Depends()],
+    quiz_service: Annotated[QuizzService, Depends(get_quizz_service)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
 ) -> QuizzResultSchema:
     user = await user_service.get_user_by_id(user_id)
     return await quiz_service.get_average_score_by_user(user.id)
@@ -181,7 +182,7 @@ async def get_user_quizzes_average_score(
 @router.get('/{user_id}/quizz_responses/', tags=['quizzes', 'users'], dependencies=[Depends(only_user_itself)])
 async def get_user_quizz_responses(
     user_id: UUID,
-    quiz_service: Annotated[QuizzService, Depends()],
+    quiz_service: Annotated[QuizzService, Depends(get_quizz_service)],
     format: Literal['json', 'csv'] = 'json',
 ) -> Response:
     if format == 'csv':
@@ -195,7 +196,7 @@ async def get_user_quizz_responses(
 )
 async def get_user_average_score_by_quizzes(
     user_id: UUID,
-    quiz_service: Annotated[QuizzService, Depends()],
+    quiz_service: Annotated[QuizzService, Depends(get_quizz_service)],
     interval: Literal['days', 'weeks', 'months'] = 'weeks',
 ) -> list[QuizzResultAnalyticsListSchema]:
     if interval == 'days':
@@ -212,6 +213,6 @@ async def get_user_average_score_by_quizzes(
 @router.get('/{user_id}/quizzes/latest/', tags=['quizzes', 'users'], dependencies=[Depends(only_user_itself)])
 async def get_latest_quizz_completion_by_user(
     user_id: UUID,
-    quiz_service: Annotated[QuizzService, Depends()],
+    quiz_service: Annotated[QuizzService, Depends(get_quizz_service)],
 ) -> list[CompletionInfoSchema]:
     return await quiz_service.get_lastest_user_completions(user_id)
