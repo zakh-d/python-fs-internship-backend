@@ -1,0 +1,31 @@
+name: "Deploy to AWS"
+
+on:
+  push:
+    branches: [ "development", "BE-19-20-aws-deploying" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up SSH key
+      run: |
+        mkdir -p ~/.ssh/
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+    - name: Create env file
+      run: |
+        touch env
+        echo "${{ secrets.ENV }}" >> env
+    - name: Copy files to remote server
+      run: |
+        ssh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "mkdir -p ~/service"
+        scp -r * ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/service/
+    - name: SSH into remote server and deploy
+      run: ssh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "cd ~/service && chmod +x ./scripts/deploy.sh && ./scripts/deploy.sh"
+    - name:  Clean up SSH key
+      if: always()
+      run: rm -f ~/.ssh/id_rsa

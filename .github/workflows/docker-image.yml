@@ -38,4 +38,4 @@ jobs:
         echo "AUTH0_EMAIL_NAME_IN_TOKEN=${{ secrets.AUTH0_EMAIL_NAME_IN_TOKEN }}" >> .env
         echo "AUTH0_AUDIENCE=${{ secrets.AUTH0_AUDIENCE }}" >> .env
     - name: Testing
-      run: ./test.sh
+      run: ./scripts/test.sh
