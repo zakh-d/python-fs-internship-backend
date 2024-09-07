@@ -16,6 +16,7 @@ from app.schemas.company_schema import (
     CompanySchema,
 )
 from app.schemas.user_shema import UserDetail, UserInCompanyList, UserInCompanySchema, UserList, UserSchema
+from app.services.notification_service import NotificationService
 
 from .exceptions import (
     ActionNotFound,
@@ -32,10 +33,12 @@ class CompanyService:
         company_repository: Annotated[CompanyRepository, Depends()],
         company_action_repository: Annotated[CompanyActionRepository, Depends()],
         quizz_repository: Annotated[QuizzRepository, Depends()],
+        notification_service: Annotated[NotificationService, Depends()],
     ):
         self._company_repository = company_repository
         self._company_action_repository = company_action_repository
         self._quizz_repository = quizz_repository
+        self._notification_service = notification_service
 
     def _user_has_edit_permission(self, company: Company, current_user: UserDetail) -> bool:
         # possible place for future is_admin check
@@ -175,10 +178,17 @@ class CompanyService:
         return 'none'
 
     async def invite_user(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> CompanyActionSchema:
-        await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)
+        company = await self._company_exists_and_user_has_permission(
+            company_id, current_user, self._user_has_edit_permission
+        )
         intivation = await self._company_action_repository.create_invintation(company_id, user_id)
         if intivation is None:
             raise UserAlreadyInvitedException(user_id, company_id)
+        await self._notification_service.send_notification_to_user(
+            to_user_id=user_id,
+            title='Company invitation',
+            body=f'You have been invited to join company {company.name}',
+        )
         return CompanyActionSchema.model_validate(intivation)
 
     async def _get_related_users_list(self, company_id: UUID, relation: CompanyActionType) -> UserList:
@@ -233,12 +243,19 @@ class CompanyService:
         return UserInCompanyList(users=schema_list_of_users, total_count=len(schema_list_of_users))
 
     async def accept_request(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> CompanyActionSchema:
-        await self._company_exists_and_user_has_permission(company_id, current_user, self._user_has_edit_permission)
+        company = await self._company_exists_and_user_has_permission(
+            company_id, current_user, self._user_has_edit_permission
+        )
         request = await self._company_action_repository.get_by_company_user_and_type(
             company_id, user_id, CompanyActionType.REQUEST
         )
         if not request:
             raise ActionNotFound(CompanyActionType.REQUEST)
+        await self._notification_service.send_notification_to_user(
+            to_user_id=user_id,
+            title='Company request accepted',
+            body=f'Your request to join {company.name} has been accepted',
+        )
         return await self._company_action_repository.update(request, CompanyActionType.MEMBERSHIP)
 
     async def reject_request(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> None:
@@ -279,7 +296,11 @@ class CompanyService:
         if not membership:
             raise ActionNotFound(CompanyActionType.MEMBERSHIP)
         admin_role = await self._company_action_repository.update(membership, CompanyActionType.ADMIN)
-
+        await self._notification_service.send_notification_to_user(
+            to_user_id=user_id,
+            title='Company admin role',
+            body=f'You have been assigned as an admin in company {company.name}',
+        )
         return CompanyActionSchema.model_validate(admin_role)
 
     async def remove_admin(self, company_id: UUID, user_id: UUID, current_user: UserDetail) -> None:

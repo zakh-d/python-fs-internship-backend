@@ -7,6 +7,7 @@ from uuid import UUID
 
 from fastapi import Depends
 
+from app.repositories.company_repository import CompanyRepository
 from app.repositories.quizz_repository import QuizzRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.quizz_schema import (
@@ -43,6 +44,7 @@ from app.schemas.quizz_schema import (
     QuizzWithNoQuestionsSchema,
 )
 from app.schemas.user_shema import UserDetail, UserSchema
+from app.services.notification_service import NotificationService
 from app.services.quizz_service.exceptions import QuizzError, QuizzNotFound
 
 
@@ -51,8 +53,12 @@ class QuizzService:
         self,
         quizz_repository: Annotated[QuizzRepository, Depends()],
         user_repository: Annotated[UserRepository, Depends()],
+        company_repository: Annotated[CompanyRepository, Depends()],
+        notification_service: Annotated[NotificationService, Depends()],
     ) -> None:
         self._quizz_repository = quizz_repository
+        self._company_repository = company_repository
+        self._notification_service = notification_service
         self._user_repository = user_repository
 
     async def create_quizz(self, quizz_data: QuizzCreateSchema, company_id: UUID) -> QuizzSchema:
@@ -88,6 +94,11 @@ class QuizzService:
                     )
                     question_response_schema.answers.append(AnswerSchema.model_validate(answer))
                 response_schema.questions.append(question_response_schema)
+
+            company = await self._company_repository.get_company_by_id(company_id)
+            await self._notification_service.send_notification_to_company_members(
+                company_id, 'New quizz', f'New quizz: {quizz.title} has been created in {company.name}'
+            )
             return response_schema
 
     async def add_question_to_quizz(self, quizz_id: UUID, question_data: QuestionCreateSchema) -> None:

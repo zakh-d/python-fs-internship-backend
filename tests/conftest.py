@@ -10,12 +10,14 @@ from app.db.db import async_session
 from app.repositories import UserRepository
 from app.repositories.company_action_repository import CompanyActionRepository
 from app.repositories.company_repository import CompanyRepository
+from app.repositories.notification_repository import NotificationRepository
 from app.repositories.quizz_repository import QuizzRepository
 from app.schemas.company_schema import CompanyCreateSchema, CompanySchema
 from app.schemas.quizz_schema import AnswerCreateSchema, QuestionCreateSchema, QuizzCreateSchema, QuizzSchema
 from app.schemas.user_shema import UserSchema, UserSignUpSchema
 from app.services.authentication_service.service import AuthenticationService
 from app.services.company_service.service import CompanyService
+from app.services.notification_service import NotificationService
 from app.services.quizz_service.service import QuizzService
 from app.services.users_service import UserService
 
@@ -46,8 +48,8 @@ def user_repo(get_db):
 
 
 @pytest.fixture
-def user_service(user_repo):
-    return UserService(user_repo, None)
+def user_service(user_repo, company_action_repo, notification_service):
+    return UserService(user_repo, company_action_repo, notification_service)
 
 
 @pytest.fixture
@@ -64,7 +66,7 @@ async def test_user(user_repo: UserRepository) -> UserSchema:
         first_name='TEST',
         last_name='USER',
         email='test_user@example.com',
-        hashed_password='fake-hash-password123'
+        hashed_password='fake-hash-password123',
     )
     await user_repo.commit_me(user)
     return UserSchema.model_validate(user)
@@ -76,10 +78,7 @@ def auth_service(user_repo: UserRepository) -> AuthenticationService:
 
 
 @pytest.fixture
-async def access_token(
-    test_user: UserSchema,
-    auth_service: AuthenticationService
-) -> str:
+async def access_token(test_user: UserSchema, auth_service: AuthenticationService) -> str:
     return auth_service.generate_jwt_token(UserSchema.model_validate(test_user))
 
 
@@ -94,15 +93,28 @@ def company_action_repo(get_db) -> CompanyActionRepository:
 
 
 @pytest.fixture
-def company_service(company_repo, company_action_repo, quizz_repo) -> CompanyService:
-    return CompanyService(company_repository=company_repo, company_action_repository=company_action_repo, quizz_repository=quizz_repo)
+def notification_repo(get_db):
+    return NotificationRepository(get_db)
+
+
+@pytest.fixture
+def notification_service(notification_repo, company_repo, company_action_repo):
+    return NotificationService(notification_repo, company_repo, company_action_repo)
+
+
+@pytest.fixture
+def company_service(company_repo, company_action_repo, quizz_repo, notification_service) -> CompanyService:
+    return CompanyService(
+        company_repository=company_repo,
+        company_action_repository=company_action_repo,
+        quizz_repository=quizz_repo,
+        notification_service=notification_service,
+    )
 
 
 @pytest.fixture
 async def company_and_users(
-    user_service: UserService,
-    company_service: CompanyService,
-    test_user: UserSchema
+    user_service: UserService, company_service: CompanyService, test_user: UserSchema
 ) -> tuple[CompanySchema, UserSchema, UserSchema]:
     owner = await user_service.create_user(
         UserSignUpSchema(
@@ -111,15 +123,13 @@ async def company_and_users(
             last_name='OWNER',
             email='owner@example.com',
             password='testpass123',
-            password_confirmation='testpass123'
+            password_confirmation='testpass123',
         )
     )
 
-    company = await company_service.create_company(CompanyCreateSchema(
-        name='TEST',
-        description='TEST',
-        hidden=False
-    ), owner)
+    company = await company_service.create_company(
+        CompanyCreateSchema(name='TEST', description='TEST', hidden=False), owner
+    )
 
     return company, owner, test_user
 
@@ -130,8 +140,9 @@ def quizz_repo(get_db):
 
 
 @pytest.fixture
-def quizz_service(quizz_repo, user_repo):
-    return QuizzService(quizz_repository=quizz_repo, user_repository=user_repo)
+def quizz_service(quizz_repo, company_repo, notification_service, user_repo):
+    return QuizzService(quizz_repository=quizz_repo, user_repository=user_repo, company_repository=company_repo, notification_service=notification_service)
+
 
 @pytest.fixture
 async def test_quizz(quizz_service: QuizzService, company_and_users) -> QuizzSchema:
@@ -145,20 +156,11 @@ async def test_quizz(quizz_service: QuizzService, company_and_users) -> QuizzSch
             QuestionCreateSchema(
                 text='Test question',
                 answers=[
-                    AnswerCreateSchema(
-                        text='option 1',
-                        is_correct=False
-                    ),
-                    AnswerCreateSchema(
-                        text='option 2',
-                        is_correct=True
-                    ),
-                    AnswerCreateSchema(
-                        text='option 3',
-                        is_correct=False
-                    )
-                ]
+                    AnswerCreateSchema(text='option 1', is_correct=False),
+                    AnswerCreateSchema(text='option 2', is_correct=True),
+                    AnswerCreateSchema(text='option 3', is_correct=False),
+                ],
             )
-        ]
+        ],
     )
     return await quizz_service.create_quizz(quizz_data, company.id)

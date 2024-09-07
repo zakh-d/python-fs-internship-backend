@@ -112,3 +112,12 @@ class QuizzResult(ModelWithIdAndTimeStamps):
     quizz_id: Mapped[UUID] = mapped_column(ForeignKey('quizzes.id', ondelete='CASCADE'))
     company_id: Mapped[UUID] = mapped_column(ForeignKey('companies.id', ondelete='CASCADE'))
     score: Mapped[int]
+
+
+class Notification(ModelWithIdAndTimeStamps):
+    __tablename__ = 'notifications'
+
+    user_id: Mapped[UUID] = mapped_column(ForeignKey('users.id', ondelete='CASCADE'))
+    title: Mapped[str] = mapped_column(String(50))
+    body: Mapped[str] = mapped_column(String(250))
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False)

@@ -256,11 +256,17 @@ class QuizzRepository(RepositoryBase):
     ) -> str:
         return f'answer:{user_id}:{company_id}:{quizz_id}:{question_id}:{answer_id}'
 
-    async def get_cached_responses_by_key(self, lookup_key: str) -> list[QuizzDetailResultSchema]:
+    async def _get_records_from_redis(self, lookup_key: str) -> tuple[list[str], list[str]]:
         redis = await get_redis_client()
         keys = await redis.keys(lookup_key)
         responses = await redis.mget(keys)
         keys = [key.decode() for key in keys]
+        responses = [response.decode() for response in responses]
+        await redis.close()
+        return keys, responses
+
+    async def get_cached_responses_by_key(self, lookup_key: str) -> list[QuizzDetailResultSchema]:
+        keys, responses = await self._get_records_from_redis(lookup_key)
         used_quizzes = {}
         used_questions_in_quizz = {}
         list_of_responses: list[QuizzDetailResultSchema] = []
@@ -277,8 +283,7 @@ class QuizzRepository(RepositoryBase):
                 )
             list_of_responses[used_quizzes[quizz_id]].questions[
                 used_questions_in_quizz[question_key]
-            ].choosen_answers.append(ChoosenAnswerSchema(answer_id=answer_id, is_correct=response == b'1'))
-        await redis.close()
+            ].choosen_answers.append(ChoosenAnswerSchema(answer_id=answer_id, is_correct=response == '1'))
         return list_of_responses
 
     async def get_user_quizz_response_from_cache(
