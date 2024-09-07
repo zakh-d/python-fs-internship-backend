@@ -48,5 +48,5 @@ class NotificationService:
             raise NotificationNotFound(notification_id)
         if notification.user_id != user_id:
             raise NotificationNotFound(notification_id)
-        notification = await self._notification_repository.read_notification(notification)
+        notification = await self._notification_repository.read_notification_and_commit(notification)
         return NotificationSchema.model_validate(notification)
