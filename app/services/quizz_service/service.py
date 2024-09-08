@@ -4,6 +4,8 @@ import io
 from math import floor
 from uuid import UUID
 
+import openpyxl
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.repositories.company_repository import CompanyRepository
@@ -504,3 +506,100 @@ class QuizzService:
     async def get_company_members_responses_from_cache_csv(self, company_id: UUID) -> str:
         responses = await self._quizz_repository.get_company_members_responses(company_id)
         return await self._user_responses_to_displayed_csv(responses)
+
+    def get_schema_from_excel(self, file: bytes, company_id: UUID) -> QuizzCreateSchema:
+        workbook = openpyxl.load_workbook(io.BytesIO(file))
+        ws = workbook.active
+
+        excel_quizz_prolog = ['QUIZZ TITLE:', 'QUIZZ DESCRIPTION:', 'QUIZZ FREQUENCY:', 'QUESTION:']
+
+        for i, expected_value in enumerate(excel_quizz_prolog):
+            if ws[f'A{i + 1}'].value != expected_value:
+                raise QuizzError(
+                    'Invalid file format, download example to see correct format\n'
+                    f'Expected: {expected_value}, got: {ws[f"A{i + 1}"].value}'
+                )
+
+        quizz_title = str(ws['B1'].value)
+        quizz_description = str(ws['B2'].value)
+        frequency = int(ws['B3'].value)
+
+        questions = []
+        curr_row = 4
+        try:
+            while ws[f'A{curr_row}'].value == 'QUESTION:':
+                question_text = str(ws[f'B{curr_row}'].value)
+                curr_row += 1
+
+                answers = []
+
+                while ws[f'A{curr_row}'].value == 'ANSWER:':
+                    answer_text = str(ws[f'B{curr_row}'].value)
+                    is_correct = ws[f'C{curr_row}'].value == 'CORRECT'
+                    answers.append(AnswerCreateSchema(text=answer_text, is_correct=is_correct))
+                    curr_row += 1
+
+                question_data = QuestionCreateSchema(text=question_text, answers=answers)
+                questions.append(question_data)
+
+            quizz_data = QuizzCreateSchema(
+                company_id=company_id,
+                title=quizz_title,
+                description=quizz_description,
+                frequency=frequency,
+                questions=questions,
+            )
+            return quizz_data
+        except ValidationError as e:
+            raise QuizzError(e.errors()[0]['msg'])
+
+    async def create_or_update_quizz(self, quizz_schema: QuizzCreateSchema) -> QuizzSchema:
+        quizz = await self._quizz_repository.get_quizz_by_company_and_title(quizz_schema.company_id, quizz_schema.title)
+
+        if not quizz:
+            return await self.create_quizz(quizz_schema, quizz_schema.company_id)
+
+        async with self._quizz_repository.unit():
+            await self._quizz_repository.update_quizz(
+                quizz,
+                QuizzUpdateSchema(
+                    title=quizz_schema.title, description=quizz_schema.description, frequency=quizz_schema.frequency
+                ),
+            )
+            quizz_questions = await self._quizz_repository.get_quizz_questions(quizz.id)
+            new_questions_text = [question.text for question in quizz_schema.questions]
+
+            for question in quizz_questions:
+                if question.text not in new_questions_text:
+                    await self.delete_question(question.id)
+
+            for question_schema in quizz_schema.questions:
+                question = await self._quizz_repository.get_question_by_quizz_and_text(quizz.id, question_schema.text)
+                if not question:
+                    await self.add_question_to_quizz(quizz.id, question_schema)
+                    continue
+
+                await self.update_question(question.id, quizz.id, QuestionUpdateSchema(text=question_schema.text))
+
+                new_answers_text = [answer.text for answer in question_schema.answers]
+                current_answers = await self._quizz_repository.get_question_answers(question.id)
+                current_answers_text = [answer.text for answer in current_answers]
+
+                for answer in current_answers:
+                    if answer.text not in new_answers_text:
+                        current_answers_text.remove(answer.text)
+                        await self._quizz_repository.delete_answer(answer.id)
+
+                for answer_schema in question_schema.answers:
+                    if answer_schema.text not in current_answers_text:
+                        await self.add_answer_to_question(quizz.id, question.id, answer_schema)
+                        continue
+                    answer = await self._quizz_repository.get_answer_by_question_and_text(
+                        question.id, answer_schema.text
+                    )
+                    await self.update_answer(
+                        answer.id,
+                        quizz.id,
+                        AnswerUpdateSchema(text=answer_schema.text, is_correct=answer_schema.is_correct),
+                    )
+        return await self.fetch_quizz_questions(await self.get_quizz(quizz.id))
