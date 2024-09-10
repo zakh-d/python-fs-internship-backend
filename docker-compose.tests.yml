@@ -1,0 +1,24 @@
+services:
+
+  api:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_started
+      redis:
+        condition: service_started
+    volumes:
+      - ./app:/code/app
+      - ./tests:/code/tests
+    env_file:
+      - ./.env
+    command: fastapi run app/main.py
+
+  postgres:
+    image: postgres
+    restart: always
+    env_file:
+      - ./.env
+  redis:
+    image: redis
+    restart: always

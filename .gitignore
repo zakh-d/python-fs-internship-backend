@@ -1,0 +1,17 @@
+# virtual environment
+venv
+
+# Python caches
+__pycache__
+
+# Secrets
+.env
+
+# Testing
+.pytest_cache
+
+# MacOS files
+**/.DS_Store
+
+# Logs
+*.log
